@@ -67,11 +67,8 @@ int main() {
             const int PANEL_HEIGHT = 32;
             const int PANEL_WIDTH = 32;
             dimension2d<u32> screenSize = engine.driver->getScreenSize();
-            dimension2d<u32> modeSelectionPanel = dimension2d<u32>(screenSize.Width, PANEL_HEIGHT);
-            dimension2d<u32> modeOptionsPanel = dimension2d<u32>(screenSize.Width, PANEL_HEIGHT);
-            dimension2d<u32> modeColumnPanel = dimension2d<u32>(PANEL_WIDTH, screenSize.Height);
-            s32 w = screenSize.Width - modeColumnPanel.Width;
-            s32 h = screenSize.Height - (modeSelectionPanel.Height + modeOptionsPanel.Height);
+            s32 w = screenSize.Width;
+            s32 h = screenSize.Height;
             s32 midW = w / 2;
             s32 midH = h / 2;
 
@@ -87,11 +84,11 @@ int main() {
                     s32 dy = engine.receiver.MouseState.Position.Y - lastMousePos.Y;
 
                     // Apply Sensitivity
-                    theta -= dx * 1.0f; 
+                    theta -= dx * 0.2f; 
                     
                     // --- CHANGED: INVERTED VERTICAL LOOK ---
                     // Changed from "-=" to "+="
-                    phi += dy * 1.0f;  
+                    phi += dy * 0.2f;  
 
                     if (phi > 89.0f) phi = 89.0f;
                     if (phi < -89.0f) phi = -89.0f;
