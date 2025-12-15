@@ -72,12 +72,26 @@ int main() {
             s32 midW = w / 2;
             s32 midH = h / 2;
 
+            // Rectangles of each viewport
+            rect<s32> topLeftRect(0, 0, midW, midH);
             rect<s32> topRightRect(midW, 0, w, midH);
+            rect<s32> bottomLeftRect(0, midH, midW, h);
+            rect<s32> bottomRightRect(midW, midH, w, h);
 
             /*==========================================
             CAMERA MODEL ROTATION
             ===========================================*/
             if (engine.receiver.MouseState.LeftButtonDown) {
+                if (topLeftRect.isPointInside(engine.receiver.MouseState.Position)) {
+                    std::cout << "Top left" << std::endl;
+                }
+                if (bottomLeftRect.isPointInside(engine.receiver.MouseState.Position)) {
+                    std::cout << "Bottom left" << std::endl;
+                }
+                if (bottomRightRect.isPointInside(engine.receiver.MouseState.Position)) {
+                    std::cout << "Bottom right" << std::endl;
+                }
+
                 if (topRightRect.isPointInside(engine.receiver.MouseState.Position)) {
                     
                     s32 dx = engine.receiver.MouseState.Position.X - lastMousePos.X;
