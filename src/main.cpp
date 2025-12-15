@@ -16,6 +16,76 @@ using namespace gui;
 #pragma comment(lib, "Irrlicht.lib")
 #endif
 
+// Returns true if a vertex was found within the threshold
+bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver, 
+                      IMeshSceneNode* node, ICameraSceneNode* camera, 
+                      rect<s32> viewport, position2di mousePos,
+                      f32 pixelThreshold, vector3df& outPos)
+{
+    bool found = false;
+    f32 minDistSq = pixelThreshold * pixelThreshold;
+    f32 closestDepth = FLT_MAX; 
+
+    camera->updateAbsolutePosition(); 
+    matrix4 view = camera->getViewMatrix();
+    matrix4 proj = camera->getProjectionMatrix();
+    matrix4 world = node->getAbsoluteTransformation();
+
+    matrix4 viewProj = proj * view;
+
+    f32 vpW = (f32)viewport.getWidth();
+    f32 vpH = (f32)viewport.getHeight();
+    f32 vpX = (f32)viewport.UpperLeftCorner.X;
+    f32 vpY = (f32)viewport.UpperLeftCorner.Y;
+
+    IMesh* mesh = node->getMesh();
+    vector3df camPos = camera->getAbsolutePosition();
+
+    for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
+        IMeshBuffer* mb = mesh->getMeshBuffer(b);
+        S3DVertex* vertices = (S3DVertex*)mb->getVertices();
+
+        for (u32 v = 0; v < mb->getVertexCount(); ++v) {
+            vector3df vPos = vertices[v].Pos;
+            
+            // 2. Transform Local -> World
+            world.transformVect(vPos);
+
+            // 3. Transform World -> Clip Space (Manually)
+            // --- FIX START ---
+            f32 transformedPos[4] = { vPos.X, vPos.Y, vPos.Z, 1.0f }; // Init array
+            viewProj.multiplyWith1x4Matrix(transformedPos);           // Transform in-place
+            // --- FIX END ---
+
+            if (transformedPos[3] == 0) continue;
+
+            f32 zDiv = 1.0f / transformedPos[3];
+            f32 ndcX = transformedPos[0] * zDiv;
+            f32 ndcY = transformedPos[1] * zDiv;
+
+            // 4. Map NDC -> Screen Space
+            f32 screenX = (ndcX + 1.0f) * 0.5f * vpW + vpX;
+            f32 screenY = (1.0f - ndcY) * 0.5f * vpH + vpY;
+
+            f32 dx = screenX - mousePos.X;
+            f32 dy = screenY - mousePos.Y;
+            f32 distSq = dx*dx + dy*dy;
+
+            if (distSq < minDistSq) {
+                f32 trueDepthSq = vPos.getDistanceFromSQ(camPos);
+
+                if (trueDepthSq < closestDepth) {
+                    closestDepth = trueDepthSq;
+                    outPos = vPos;
+                    found = true;
+                }
+            }
+        }
+    }
+
+    return found;
+}
+
 int main() {
     Core engine;
 
@@ -57,6 +127,8 @@ int main() {
     
     position2di lastMousePos = engine.receiver.MouseState.Position;
 
+    ISceneNode* currentMarker = 0;
+
     while(engine.device->run()) {
         
         if (engine.receiver.IsKeyDown(KEY_ESCAPE)) {
@@ -78,21 +150,34 @@ int main() {
             rect<s32> bottomLeftRect(0, midH, midW, h);
             rect<s32> bottomRightRect(midW, midH, w, h);
 
+            ICameraSceneNode* activeCam = 0;
+            rect<s32> activeRect;
+            bool clickedViewport = false;
+
             /*==========================================
             CAMERA MODEL ROTATION
             ===========================================*/
             if (engine.receiver.MouseState.LeftButtonDown) {
                 if (topLeftRect.isPointInside(engine.receiver.MouseState.Position)) {
-                    std::cout << "Top left" << std::endl;
+                    std::cout << "Clicked Top Left" << std::endl;
+                    activeCam = camTop;
+                    activeRect = topLeftRect;
+                    clickedViewport = true;
                 }
-                if (bottomLeftRect.isPointInside(engine.receiver.MouseState.Position)) {
-                    std::cout << "Bottom left" << std::endl;
+                else if (bottomLeftRect.isPointInside(engine.receiver.MouseState.Position)) {
+                    std::cout << "Clicked Bottom Left" << std::endl;
+                    activeCam = camFront;
+                    activeRect = bottomLeftRect;
+                    clickedViewport = true;
                 }
-                if (bottomRightRect.isPointInside(engine.receiver.MouseState.Position)) {
-                    std::cout << "Bottom right" << std::endl;
+                else if (bottomRightRect.isPointInside(engine.receiver.MouseState.Position)) {
+                    std::cout << "Clicked Bottom Right" << std::endl;
+                    activeCam = camRight;
+                    activeRect = bottomRightRect;
+                    clickedViewport = true;
                 }
 
-                if (topRightRect.isPointInside(engine.receiver.MouseState.Position)) {
+                else if (topRightRect.isPointInside(engine.receiver.MouseState.Position)) {
                     
                     s32 dx = engine.receiver.MouseState.Position.X - lastMousePos.X;
                     s32 dy = engine.receiver.MouseState.Position.Y - lastMousePos.Y;
@@ -118,6 +203,31 @@ int main() {
 
                     camModel->setPosition(vector3df(x, y, z));
                     camModel->setTarget(vector3df(0,0,0)); 
+                }
+
+                if (clickedViewport && cube) {
+                    vector3df hitPos;
+                    // Threshold in PIXELS now (e.g., 15px radius)
+                    f32 selectThreshold = 45.0f; 
+
+                    bool found = getClosestVertex(engine.smgr, engine.driver, 
+                                                cube, activeCam, 
+                                                activeRect, engine.receiver.MouseState.Position,
+                                                selectThreshold, hitPos);
+
+                    if (found) {
+                        std::cout << "Selected Vertex: " << hitPos.X << ", " << hitPos.Y << ", " << hitPos.Z << std::endl;
+                        
+                        if (currentMarker) {
+                            currentMarker->remove();
+                            currentMarker = 0;
+                        }
+
+                        currentMarker = engine.smgr->addSphereSceneNode(0.5f);
+                        currentMarker->setPosition(hitPos);
+                        currentMarker->setMaterialFlag(EMF_LIGHTING, false);
+                        currentMarker->setMaterialFlag(EMF_ZBUFFER, false); // Draw on top
+                    }
                 }
             }
             
