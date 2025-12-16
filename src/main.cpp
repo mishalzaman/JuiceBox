@@ -1,3 +1,15 @@
+// {"Grey":"7B7F82",
+// "Blue Slate":"4D768A",
+// "Sky Reflection":"76B1CA",
+// "Light Coral":"D48479",
+// "Chocolate":"D66A32",
+// "Sunflower Gold":"E9B336",
+// "Sunlit Clay":"D9AF6F",
+// "Pacific Blue":"75AEC2",
+// "Shadow Grey":"181320",
+// "Ebony":"6E664A"}
+// https://coolors.co/palette/7b7f82-4d768a-76b1ca-d48479-d66a32-e9b336-d9af6f-75aec2-181320-6e664a
+
 #include <irrlicht.h>
 #include <iostream>
 #include <cmath>
