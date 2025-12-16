@@ -121,7 +121,8 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
 // DRAGGING FIX: Use Plane Intersection (Ray-Cast) instead of Unprojection
 // This prevents the mesh from jumping around or sliding in depth
 vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera, 
-                          position2di mousePos, vector3df originalPos, int viewportType)
+                          position2di mousePos, vector3df originalPos, int viewportType,
+                          rect<s32> viewport)
 {
     // 1. Create a plane passing through the selected vertex
     //    The Normal determines which axis is LOCKED.
@@ -131,22 +132,53 @@ vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera
         case 0: // Top View (Looking down Y) -> Plane is XZ (Normal Y)
             dragPlane = plane3df(originalPos, vector3df(0, 1, 0));
             break;
-        case 1: // Front View (Looking forward Z) -> Plane is XY (Normal Z)
-            dragPlane = plane3df(originalPos, vector3df(0, 0, -1));
+        case 1: // Front View (Looking down Z) -> Plane is XY (Normal Z)
+            dragPlane = plane3df(originalPos, vector3df(0, 0, 1));
             break;
-        case 2: // Right View (Looking left X) -> Plane is YZ (Normal X)
-            dragPlane = plane3df(originalPos, vector3df(1, 0, 0));
+        case 2: // Right View (Looking down X) -> Plane is YZ (Normal X)
+            dragPlane = plane3df(originalPos, vector3df(-1, 0, 0));
             break;
         default:
             return originalPos;
     }
 
-    // 2. Get a ray from the camera through the mouse cursor
-    line3d<f32> ray = coll->getRayFromScreenCoordinates(mousePos, camera);
+    // 2. Convert mouse position to viewport-relative coordinates
+    position2di viewportMouse(
+        mousePos.X - viewport.UpperLeftCorner.X,
+        mousePos.Y - viewport.UpperLeftCorner.Y
+    );
+    
+    // 3. Manually create ray using camera matrices
+    camera->updateAbsolutePosition();
+    
+    // Get matrices
+    matrix4 viewMat = camera->getViewMatrix();
+    matrix4 projMat = camera->getProjectionMatrix();
+    matrix4 viewProj = projMat * viewMat;
+    matrix4 invViewProj;
+    viewProj.getInverse(invViewProj);
+    
+    // Convert to normalized device coordinates (-1 to 1)
+    f32 vpW = (f32)viewport.getWidth();
+    f32 vpH = (f32)viewport.getHeight();
+    f32 ndcX = (viewportMouse.X / vpW) * 2.0f - 1.0f;
+    f32 ndcY = 1.0f - (viewportMouse.Y / vpH) * 2.0f;
+    
+    // Create near and far points
+    vector3df nearPoint(ndcX, ndcY, 0.0f);
+    vector3df farPoint(ndcX, ndcY, 1.0f);
+    
+    // Transform to world space
+    invViewProj.transformVect(nearPoint);
+    invViewProj.transformVect(farPoint);
+    
+    // Create ray
+    vector3df rayDir = farPoint - nearPoint;
+    rayDir.normalize();
 
-    // 3. Intersect ray with plane
+    // 4. Intersect ray with plane
     vector3df intersection;
-    if (dragPlane.getIntersectionWithLine(ray.start, ray.getVector(), intersection)) {
+    if (dragPlane.getIntersectionWithLine(nearPoint, rayDir, intersection)) {
         return intersection;
     }
 
@@ -338,16 +370,11 @@ int main() {
                     // 2. DRAG
                     else if (isDragging && selection.isSelected) {
                         
-                        // Temporarily set viewport for correct ray projection
-                        rect<s32> oldVP = engine.driver->getViewPort();
-                        engine.driver->setViewPort(activeRect);
-                        
                         // Use Plane Intersection for stable movement
                         vector3df newPos = getDragPosition(coll, activeCam, 
                                                           engine.receiver.MouseState.Position, 
-                                                          selection.worldPos, activeViewportType);
-                        
-                        engine.driver->setViewPort(oldVP);
+                                                          selection.worldPos, activeViewportType,
+                                                          activeRect);
 
                         // Update ALL vertices in the list
                         updateVertexPositions(testMesh, selection.bufferIndex, selection.vertexIndices, newPos);
