@@ -10,7 +10,7 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-class Core {
+class Application {
 public:
     // Pointers to core components
     IrrlichtDevice* device;
@@ -18,8 +18,8 @@ public:
     ISceneManager* smgr;
     JuiceBoxEventListener receiver;
 
-    Core(); // Constructor declaration
-    ~Core(); // Destructor declaration
+    Application(); // Constructor declaration
+    ~Application(); // Destructor declaration
 private:
     bool _initialize();
     void _setWindowResolution();

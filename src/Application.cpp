@@ -1,23 +1,23 @@
-#include "Core.h"
+#include "Application.h"
 
 // For standard output/debugging (optional)
 #include <iostream>
 
 // --- Constructor ---
-Core::Core() : device(nullptr), driver(nullptr), smgr(nullptr) {
+Application::Application() : device(nullptr), driver(nullptr), smgr(nullptr) {
     // Member initializers handle the initial null values
     this->_initialize();
 }
 
 // --- Destructor ---
-Core::~Core() {
+Application::~Application() {
     if (device) {
         device->drop();
     }
 }
 
 // --- GetDesktopResolution Definition ---
-void Core::_setWindowResolution() {
+void Application::_setWindowResolution() {
     // 1. Create a temporary NULL device to get the video mode list
     IrrlichtDevice *nullDevice = createDevice(EDT_NULL);
     
@@ -43,7 +43,7 @@ void Core::_setWindowResolution() {
 }
 
 // --- Initialize Definition ---
-bool Core::_initialize() {
+bool Application::_initialize() {
     _setWindowResolution();
 
     // 4. Create the main device using the fetched resolution

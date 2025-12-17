@@ -3,7 +3,7 @@
 #include <cmath>
 #include <vector>
 
-#include "Core.h"
+#include "Application.h"
 #include "JuiceBoxEventListener.h"
 
 // ImGui includes
@@ -259,7 +259,7 @@ bool ImGuiInputHandler::wantCaptureKeyboard = false;
 
 int main() {
     // ... (Keep existing implementation of main)
-    Core engine;
+    Application engine;
     ISceneCollisionManager* coll = engine.smgr->getSceneCollisionManager();
 
     // Initialize ImGui
