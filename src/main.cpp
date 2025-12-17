@@ -433,17 +433,27 @@ int main() {
             ImGui_ImplOpenGL3_NewFrame();
             ImGui::NewFrame();
 
-            if (showTestWindow) {
-                ImGui::Begin("Test Controls", &showTestWindow);
-                ImGui::Text("Welcome to JuiceBox!");
-                if (ImGui::Button("Click Me!")) clickCount++;
-                ImGui::SameLine();
-                ImGui::Text("Clicks: %d", clickCount);
-                if (ImGui::SliderFloat("Cube Scale", &cubeScale, 0.5f, 3.0f)) {
-                    if (testMesh) testMesh->setScale(vector3df(cubeScale, cubeScale, cubeScale));
+            // 2. Render the Toolbar and capture its height
+            float toolbarHeight = 0;
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
+            ImGui::SetNextWindowSize(ImVec2((float)screenSize.Width, 0)); // Height 0 allows auto-fit
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | 
+                                            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | 
+                                            ImGuiWindowFlags_MenuBar;
+
+            if (ImGui::Begin("MainToolbar", nullptr, window_flags)) {
+                if (ImGui::BeginMenuBar()) {
+                    if (ImGui::BeginMenu("File")) {
+                        if (ImGui::MenuItem("Exit")) engine.device->closeDevice();
+                        ImGui::EndMenu();
+                    }
+                    // ... other menus
+                    ImGui::EndMenuBar();
                 }
-                ImGui::End();
+                toolbarHeight = ImGui::GetWindowHeight(); // This scales with your UI/font
             }
+            ImGui::End();
 
             ImGui::Render();
 
