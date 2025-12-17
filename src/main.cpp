@@ -1,22 +1,14 @@
-// {"Grey":"7B7F82",
-// "Blue Slate":"4D768A",
-// "Sky Reflection":"76B1CA",
-// "Light Coral":"D48479",
-// "Chocolate":"D66A32",
-// "Sunflower Gold":"E9B336",
-// "Sunlit Clay":"D9AF6F",
-// "Pacific Blue":"75AEC2",
-// "Shadow Grey":"181320",
-// "Ebony":"6E664A"}
-// https://coolors.co/palette/7b7f82-4d768a-76b1ca-d48479-d66a32-e9b336-d9af6f-75aec2-181320-6e664a
-
 #include <irrlicht.h>
 #include <iostream>
 #include <cmath>
-#include <vector> // Required for storing multiple vertex indices
+#include <vector>
 
 #include "Core.h"
 #include "JuiceBoxEventListener.h"
+
+// ImGui includes
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
 
 using namespace irr;
 using namespace core;
@@ -29,21 +21,22 @@ using namespace gui;
 #pragma comment(lib, "Irrlicht.lib")
 #endif
 
-// Structure to track selected vertex (and all its connected duplicates)
+// --- Structures and Helper Functions ---
+
 struct VertexSelection {
     bool isSelected = false;
     u32 bufferIndex = 0;
-    std::vector<u32> vertexIndices; // Stores ALL indices sharing the same position
+    std::vector<u32> vertexIndices;
     vector3df worldPos;
 };
 
-// Returns true if a vertex was found within the threshold
 bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver, 
                       IMeshSceneNode* node, ICameraSceneNode* camera, 
                       rect<s32> viewport, position2di mousePos,
                       f32 pixelThreshold, vector3df& outPos,
                       u32& outBufferIndex, std::vector<u32>& outIndices)
 {
+    // ... (Keep existing implementation of getClosestVertex)
     bool found = false;
     f32 minDistSq = pixelThreshold * pixelThreshold;
     f32 closestDepth = FLT_MAX; 
@@ -63,7 +56,6 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
     IMesh* mesh = node->getMesh();
     vector3df camPos = camera->getAbsolutePosition();
 
-    // 1. First Pass: Find the closest vertex to the mouse visually
     u32 closestVIndex = 0;
     u32 closestBIndex = 0;
     vector3df closestWorldPos;
@@ -74,7 +66,7 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
 
         for (u32 v = 0; v < mb->getVertexCount(); ++v) {
             vector3df vPos = vertices[v].Pos;
-            world.transformVect(vPos); // To World Space
+            world.transformVect(vPos);
 
             f32 transformedPos[4] = { vPos.X, vPos.Y, vPos.Z, 1.0f };
             viewProj.multiplyWith1x4Matrix(transformedPos);
@@ -105,7 +97,6 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
         }
     }
 
-    // 2. Second Pass: Find ALL vertices that share this position (Weld Logic)
     if (found) {
         outPos = closestWorldPos;
         outBufferIndex = closestBIndex;
@@ -113,14 +104,12 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
         IMeshBuffer* mb = mesh->getMeshBuffer(closestBIndex);
         S3DVertex* vertices = (S3DVertex*)mb->getVertices();
         
-        // Transform back to local space to compare with raw vertex data
         matrix4 invWorld;
         node->getAbsoluteTransformation().getInverse(invWorld);
         vector3df targetLocalPos = closestWorldPos;
         invWorld.transformVect(targetLocalPos);
 
         for (u32 v = 0; v < mb->getVertexCount(); ++v) {
-            // Check if positions match (using a small epsilon for float errors)
             if (vertices[v].Pos.equals(targetLocalPos, 0.001f)) {
                 outIndices.push_back(v);
             }
@@ -130,65 +119,54 @@ bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver,
     return found;
 }
 
-// DRAGGING FIX: Use Plane Intersection (Ray-Cast) instead of Unprojection
-// This prevents the mesh from jumping around or sliding in depth
 vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera, 
                           position2di mousePos, vector3df originalPos, int viewportType,
                           rect<s32> viewport)
 {
-    // 1. Create a plane passing through the selected vertex
-    //    The Normal determines which axis is LOCKED.
+    // ... (Keep existing implementation of getDragPosition)
     plane3df dragPlane;
 
     switch(viewportType) {
-        case 0: // Top View (Looking down Y) -> Plane is XZ (Normal Y)
+        case 0:
             dragPlane = plane3df(originalPos, vector3df(0, 1, 0));
             break;
-        case 1: // Front View (Looking down Z) -> Plane is XY (Normal Z)
+        case 1:
             dragPlane = plane3df(originalPos, vector3df(0, 0, 1));
             break;
-        case 2: // Right View (Looking down X) -> Plane is YZ (Normal X)
+        case 2:
             dragPlane = plane3df(originalPos, vector3df(-1, 0, 0));
             break;
         default:
             return originalPos;
     }
 
-    // 2. Convert mouse position to viewport-relative coordinates
     position2di viewportMouse(
         mousePos.X - viewport.UpperLeftCorner.X,
         mousePos.Y - viewport.UpperLeftCorner.Y
     );
     
-    // 3. Manually create ray using camera matrices
     camera->updateAbsolutePosition();
     
-    // Get matrices
     matrix4 viewMat = camera->getViewMatrix();
     matrix4 projMat = camera->getProjectionMatrix();
     matrix4 viewProj = projMat * viewMat;
     matrix4 invViewProj;
     viewProj.getInverse(invViewProj);
     
-    // Convert to normalized device coordinates (-1 to 1)
     f32 vpW = (f32)viewport.getWidth();
     f32 vpH = (f32)viewport.getHeight();
     f32 ndcX = (viewportMouse.X / vpW) * 2.0f - 1.0f;
     f32 ndcY = 1.0f - (viewportMouse.Y / vpH) * 2.0f;
     
-    // Create near and far points
     vector3df nearPoint(ndcX, ndcY, 0.0f);
     vector3df farPoint(ndcX, ndcY, 1.0f);
     
-    // Transform to world space
     invViewProj.transformVect(nearPoint);
     invViewProj.transformVect(farPoint);
     
-    // Create ray
     vector3df rayDir = farPoint - nearPoint;
     rayDir.normalize();
 
-    // 4. Intersect ray with plane
     vector3df intersection;
     if (dragPlane.getIntersectionWithLine(nearPoint, rayDir, intersection)) {
         return intersection;
@@ -197,16 +175,15 @@ vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera
     return originalPos;
 }
 
-// Update ALL selected vertices to the new position
 void updateVertexPositions(IMeshSceneNode* node, u32 bufferIndex, const std::vector<u32>& indices, vector3df worldPos)
 {
+    // ... (Keep existing implementation of updateVertexPositions)
     IMesh* mesh = node->getMesh();
     if (bufferIndex >= mesh->getMeshBufferCount()) return;
     
     IMeshBuffer* mb = mesh->getMeshBuffer(bufferIndex);
     S3DVertex* vertices = (S3DVertex*)mb->getVertices();
     
-    // Convert world position back to local space ONCE
     matrix4 worldTransform = node->getAbsoluteTransformation();
     matrix4 invWorld;
     worldTransform.getInverse(invWorld);
@@ -214,7 +191,6 @@ void updateVertexPositions(IMeshSceneNode* node, u32 bufferIndex, const std::vec
     vector3df localPos = worldPos;
     invWorld.transformVect(localPos);
     
-    // Update all linked vertices
     for (u32 idx : indices) {
         if (idx < mb->getVertexCount()) {
             vertices[idx].Pos = localPos;
@@ -225,29 +201,92 @@ void updateVertexPositions(IMeshSceneNode* node, u32 bufferIndex, const std::vec
     mesh->setDirty();
 }
 
+// --- ImGui Integration ---
+
+class ImGuiInputHandler {
+public:
+    static bool wantCaptureMouse;
+    static bool wantCaptureKeyboard;
+    
+    static void processEvent(const SEvent& event) {
+        ImGuiIO& io = ImGui::GetIO();
+        
+        if (event.EventType == EET_MOUSE_INPUT_EVENT) {
+            io.MousePos = ImVec2((float)event.MouseInput.X, (float)event.MouseInput.Y);
+            
+            if (event.MouseInput.Event == EMIE_LMOUSE_PRESSED_DOWN)
+                io.MouseDown[0] = true;
+            if (event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP)
+                io.MouseDown[0] = false;
+            if (event.MouseInput.Event == EMIE_RMOUSE_PRESSED_DOWN)
+                io.MouseDown[1] = true;
+            if (event.MouseInput.Event == EMIE_RMOUSE_LEFT_UP)
+                io.MouseDown[1] = false;
+            if (event.MouseInput.Event == EMIE_MMOUSE_PRESSED_DOWN)
+                io.MouseDown[2] = true;
+            if (event.MouseInput.Event == EMIE_MMOUSE_LEFT_UP)
+                io.MouseDown[2] = false;
+            if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
+                io.MouseWheel += event.MouseInput.Wheel;
+        }
+        
+        if (event.EventType == EET_KEY_INPUT_EVENT) {
+            // Casting the Irrlicht key directly to ImGuiKey for now to resolve error
+            io.AddKeyEvent((ImGuiKey)event.KeyInput.Key, event.KeyInput.PressedDown);
+            
+            if (event.KeyInput.PressedDown && event.KeyInput.Char != 0) {
+                io.AddInputCharacter(event.KeyInput.Char);
+            }
+        }
+        
+        wantCaptureMouse = io.WantCaptureMouse;
+        wantCaptureKeyboard = io.WantCaptureKeyboard;
+    }
+};
+
+// Define the bridge function AFTER the class definition
+void forwardEventToImGui(const SEvent& event) {
+    // Safety check: Only forward events if the ImGui context has been created
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGuiInputHandler::processEvent(event);
+    }
+}
+
+bool ImGuiInputHandler::wantCaptureMouse = false;
+bool ImGuiInputHandler::wantCaptureKeyboard = false;
+
+// --- Main Loop ---
+
 int main() {
+    // ... (Keep existing implementation of main)
     Core engine;
     ISceneCollisionManager* coll = engine.smgr->getSceneCollisionManager();
 
-    // --- Scene Setup ---
-    // You can use a Cube now! The "Weld Logic" in getClosestVertex handles the split corners.
+    // Initialize ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    
+    ImGui::StyleColorsDark();
+    ImGui_ImplOpenGL3_Init("#version 130");
+
+    // Scene Setup
     IMeshSceneNode* testMesh = engine.smgr->addCubeSceneNode(10.0f);
     if (testMesh) {
         testMesh->setPosition(vector3df(0, 0, 0));
         testMesh->setMaterialFlag(EMF_LIGHTING, false); 
-        testMesh->getMesh()->setHardwareMappingHint(EHM_DYNAMIC);
+        // testMesh->getMesh()->setHardwareMappingHint(EHM_DYNAMIC);
     }
 
     engine.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
 
-    // --- Cameras ---
+    // Cameras
     ICameraSceneNode* camTop = engine.smgr->addCameraSceneNode(0, vector3df(0, 50, 0), vector3df(0, 0, 0));
     camTop->setUpVector(vector3df(0, 0, 1)); 
     
     ICameraSceneNode* camModel = engine.smgr->addCameraSceneNode(0, vector3df(10, 10, -10), vector3df(0, 0, 0));
-
     ICameraSceneNode* camFront = engine.smgr->addCameraSceneNode(0, vector3df(0, 0, -50), vector3df(0, 0, 0));
-    
     ICameraSceneNode* camRight = engine.smgr->addCameraSceneNode(0, vector3df(50, 0, 0), vector3df(0, 0, 0));
 
     matrix4 ortho;
@@ -257,7 +296,6 @@ int main() {
     camFront->setProjectionMatrix(ortho, true);
     camRight->setProjectionMatrix(ortho, true);
 
-    // --- Orbit Control Variables ---
     f32 cameraRadius = 20.0f;
     f32 theta = 0.0f;
     f32 phi = 45.0f;
@@ -267,9 +305,11 @@ int main() {
     ISceneNode* currentMarker = 0;
     VertexSelection selection;
     bool isDragging = false;
+    int activeViewportType = -1;
     
-    // State Persistence (Fixes logic drift)
-    int activeViewportType = -1; // -1=none, 0=top, 1=front, 2=right, 3=model
+    bool showTestWindow = true;
+    int clickCount = 0;
+    float cubeScale = 1.0f;
 
     while(engine.device->run()) {
         
@@ -293,10 +333,6 @@ int main() {
             rect<s32> activeRect;
             bool inOrthoViewport = false;
 
-            /*==========================================
-             STATE MANAGEMENT
-            ===========================================*/
-            // If dragging, LOCK logic to the starting viewport
             if (isDragging) {
                 if (activeViewportType == 0) { 
                     activeCam = camTop; activeRect = topLeftRect; inOrthoViewport = true; 
@@ -306,7 +342,6 @@ int main() {
                     activeCam = camRight; activeRect = bottomRightRect; inOrthoViewport = true; 
                 }
             } else {
-                // Hit testing
                 position2di mPos = engine.receiver.MouseState.Position;
                 if (topLeftRect.isPointInside(mPos)) {
                     activeCam = camTop; activeRect = topLeftRect; inOrthoViewport = true; activeViewportType = 0;
@@ -318,19 +353,15 @@ int main() {
                     activeCam = camRight; activeRect = bottomRightRect; inOrthoViewport = true; activeViewportType = 2;
                 }
                 else if (topRightRect.isPointInside(mPos)) {
-                    activeViewportType = 3; // Model view
+                    activeViewportType = 3;
                 }
                 else {
                     activeViewportType = -1; 
                 }
             }
 
-            /*==========================================
-             MOUSE HANDLING
-            ===========================================*/
-            if (engine.receiver.MouseState.LeftButtonDown) {
+            if (!ImGuiInputHandler::wantCaptureMouse && engine.receiver.MouseState.LeftButtonDown) {
                 
-                // --- ORBIT CONTROL (Model View) ---
                 if (!isDragging && activeViewportType == 3) {
                     s32 dx = engine.receiver.MouseState.Position.X - lastMousePos.X;
                     s32 dy = engine.receiver.MouseState.Position.Y - lastMousePos.Y;
@@ -348,14 +379,12 @@ int main() {
                     camModel->setTarget(vector3df(0,0,0)); 
                 }
 
-                // --- VERTEX OPERATIONS (Ortho Viewports) ---
                 if (inOrthoViewport && activeCam && testMesh) {
                     
-                    // 1. SELECT
                     if (!isDragging && !selection.isSelected) {
                         vector3df hitPos;
                         u32 bufIdx;
-                        std::vector<u32> indices; // Hold all coincident vertices
+                        std::vector<u32> indices;
                         f32 selectThreshold = 45.0f; 
 
                         bool found = getClosestVertex(engine.smgr, engine.driver, 
@@ -364,11 +393,9 @@ int main() {
                                                     selectThreshold, hitPos, bufIdx, indices);
 
                         if (found) {
-                            std::cout << "Selected " << indices.size() << " vertices at: " << hitPos.X << ", " << hitPos.Y << ", " << hitPos.Z << std::endl;
-                            
                             selection.isSelected = true;
                             selection.bufferIndex = bufIdx;
-                            selection.vertexIndices = indices; // Store the list!
+                            selection.vertexIndices = indices;
                             selection.worldPos = hitPos;
                             isDragging = true;
 
@@ -379,16 +406,12 @@ int main() {
                             currentMarker->setMaterialFlag(EMF_ZBUFFER, false);
                         }
                     }
-                    // 2. DRAG
                     else if (isDragging && selection.isSelected) {
-                        
-                        // Use Plane Intersection for stable movement
                         vector3df newPos = getDragPosition(coll, activeCam, 
                                                           engine.receiver.MouseState.Position, 
                                                           selection.worldPos, activeViewportType,
                                                           activeRect);
 
-                        // Update ALL vertices in the list
                         updateVertexPositions(testMesh, selection.bufferIndex, selection.vertexIndices, newPos);
                         
                         selection.worldPos = newPos;
@@ -396,55 +419,60 @@ int main() {
                     }
                 }
             }
-            else {
+            else if (!engine.receiver.MouseState.LeftButtonDown) {
                 isDragging = false;
                 selection.isSelected = false;
             }
             
             lastMousePos = engine.receiver.MouseState.Position;
 
+            // Send screen dimensions
+            ImGuiIO& io = ImGui::GetIO();
+            io.DisplaySize = ImVec2((float)screenSize.Width, (float)screenSize.Height);
+
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui::NewFrame();
+
+            if (showTestWindow) {
+                ImGui::Begin("Test Controls", &showTestWindow);
+                ImGui::Text("Welcome to JuiceBox!");
+                if (ImGui::Button("Click Me!")) clickCount++;
+                ImGui::SameLine();
+                ImGui::Text("Clicks: %d", clickCount);
+                if (ImGui::SliderFloat("Cube Scale", &cubeScale, 0.5f, 3.0f)) {
+                    if (testMesh) testMesh->setScale(vector3df(cubeScale, cubeScale, cubeScale));
+                }
+                ImGui::End();
+            }
+
+            ImGui::Render();
+
             engine.driver->beginScene(true, true, SColor(255, 40, 40, 40));
 
-            // --- DRAW VIEWPORTS ---
-            
-            // TOP LEFT (Top View)
+            // Viewport Rendering
             engine.driver->setViewPort(rect<s32>(0, 0, midW, midH));
             engine.smgr->setActiveCamera(camTop);    
-            if(testMesh) {
-                testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-                testMesh->setMaterialFlag(EMF_LIGHTING, false);
-            }
+            if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
             engine.smgr->drawAll();
             
-            // TOP RIGHT (Model View)
             engine.driver->setViewPort(rect<s32>(midW, 0, w, midH));
             engine.smgr->setActiveCamera(camModel);
-            if(testMesh) {
-                testMesh->setMaterialFlag(EMF_WIREFRAME, false);
-                testMesh->setMaterialFlag(EMF_LIGHTING, true);
-            }
+            if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, false);
             engine.smgr->drawAll();
 
-            // BOTTOM LEFT (Front View)
             engine.driver->setViewPort(rect<s32>(0, midH, midW, h));
             engine.smgr->setActiveCamera(camFront);
-            if(testMesh) {
-                testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-                testMesh->setMaterialFlag(EMF_LIGHTING, false);
-            }
+            if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
             engine.smgr->drawAll();
 
-            // BOTTOM RIGHT (Right View)
             engine.driver->setViewPort(rect<s32>(midW, midH, w, h));
             engine.smgr->setActiveCamera(camRight);
-            if(testMesh) {
-                testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-                testMesh->setMaterialFlag(EMF_LIGHTING, false);
-            }
+            if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
             engine.smgr->drawAll();
 
-            // --- DRAW BORDERS ---
             engine.driver->setViewPort(rect<s32>(0, 0, w, h));
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            
             SColor borderColor(255, 100, 100, 100);
             engine.driver->draw2DLine(position2d<s32>(midW, 0), position2d<s32>(midW, h), borderColor);
             engine.driver->draw2DLine(position2d<s32>(0, midH), position2d<s32>(w, midH), borderColor);
@@ -452,6 +480,9 @@ int main() {
             engine.driver->endScene();
         }
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui::DestroyContext();
 
     return 0;
 }
