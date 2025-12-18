@@ -6,13 +6,16 @@ using namespace irr;
 using namespace core;
 using namespace gui;
 
+// Forward declare ImGui handler
+class ImGuiInputHandler;
+
 class JuiceBoxEventListener : public irr::IEventReceiver
 {
 public:
-    // --- Mouse State (Existing) ---
+    // Mouse State
     struct SMouseState {
-        position2di Position; // Current X, Y
-        bool LeftButtonDown;  // Is Left Click held?
+        position2di Position;
+        bool LeftButtonDown;
     } MouseState;
 
     bool KeyIsDown[KEY_KEY_CODES_COUNT];
@@ -25,6 +28,9 @@ public:
     }
 
     virtual bool OnEvent(const SEvent& event) {
+        // Forward event to ImGui (declared in main.cpp)
+        extern void forwardEventToImGui(const SEvent& event);
+        forwardEventToImGui(event);
         
         if (event.EventType == EET_MOUSE_INPUT_EVENT) {
             switch(event.MouseInput.Event) {

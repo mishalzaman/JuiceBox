@@ -1,7 +1,10 @@
 #pragma once
 
 #include <irrlicht.h>
-#include "JuiceBoxEventListener.h" // Assuming this is needed for the receiver setup
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "JuiceBoxEventListener.h"
+#include "helpers/WindowResolution.h"
 
 using namespace irr;
 using namespace core;
@@ -10,7 +13,7 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-class Core {
+class Application {
 public:
     // Pointers to core components
     IrrlichtDevice* device;
@@ -18,11 +21,11 @@ public:
     ISceneManager* smgr;
     JuiceBoxEventListener receiver;
 
-    Core(); // Constructor declaration
-    ~Core(); // Destructor declaration
-private:
-    bool _initialize();
-    void _setWindowResolution();
+    Application(); // Constructor declaration
+    ~Application(); // Destructor declaration
 
+    bool BeginCore();
+    void BeginGUI();
+private:
     dimension2d<u32> _windowResolution;
 };
