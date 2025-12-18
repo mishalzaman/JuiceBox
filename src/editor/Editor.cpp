@@ -1,9 +1,22 @@
 #include "Editor.h"
 #include <iostream>
 
-Editor::Editor(Application& application):
-    _application(application)
+const vector3df Editor::CAMERA_LOOKAT = vector3df(0, 0, 0);
+const vector3df Editor::CAMERA_TOP_POS = vector3df(0, 50, 0);
+const vector3df Editor::CAMERA_TOP_UP = vector3df(0, 0, 1);
+const vector3df Editor::CAMERA_MODEL_POS = vector3df(10, 10, -10);
+const vector3df Editor::CAMERA_FRONT_POS = vector3df(0, 0, -50);
+const vector3df Editor::CAMERA_RIGHT_POS = vector3df(50, 0, 0);
+
+Editor::Editor(Application& application)
+    : _application(application),
+      _cameraTop(application, CAMERA_TOP_POS, CAMERA_LOOKAT, true),
+      _cameraModel(application, CAMERA_MODEL_POS, CAMERA_LOOKAT, false),
+      _cameraFront(application, CAMERA_FRONT_POS, CAMERA_LOOKAT, true),
+      _cameraRight(application, CAMERA_RIGHT_POS, CAMERA_LOOKAT, true)
 {
+    // Set the custom up vector for the top camera
+    _cameraTop.SetUpVector(CAMERA_TOP_UP);
 }
 
 Editor::~Editor()
@@ -33,13 +46,3 @@ void Editor::_setupDefaultMesh()
     _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
 }
 
-void Editor::_setupCameras()
-{
-    _camTop = _application.smgr->addCameraSceneNode(0, vector3df(0, 50, 0), vector3df(0, 0, 0));
-    _camTop->setUpVector(vector3df(0, 0, 1)); 
-    
-    _camModel = _application.smgr->addCameraSceneNode(0, vector3df(10, 10, -10), vector3df(0, 0, 0));
-    _camFront = _application.smgr->addCameraSceneNode(0, vector3df(0, 0, -50), vector3df(0, 0, 0));
-    _camRight = _application.smgr->addCameraSceneNode(0, vector3df(50, 0, 0), vector3df(0, 0, 0));
-
-}
