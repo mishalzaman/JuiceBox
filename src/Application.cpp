@@ -1,50 +1,19 @@
 #include "Application.h"
 
-// For standard output/debugging (optional)
-#include <iostream>
-
-// --- Constructor ---
 Application::Application() : device(nullptr), driver(nullptr), smgr(nullptr) {
-    // Member initializers handle the initial null values
-    this->_initialize();
 }
 
-// --- Destructor ---
 Application::~Application() {
     if (device) {
         device->drop();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui::DestroyContext();
 }
 
-// --- GetDesktopResolution Definition ---
-void Application::_setWindowResolution() {
-    // 1. Create a temporary NULL device to get the video mode list
-    IrrlichtDevice *nullDevice = createDevice(EDT_NULL);
-    
-    // Check if device creation failed
-    if (!nullDevice){ 
-        this->_windowResolution = dimension2d<u32>(1024, 768); // Fallback
-    }
-
-    IVideoModeList* modeList = nullDevice->getVideoModeList();
-
-    if (modeList)
-    {
-        this->_windowResolution = modeList->getDesktopResolution();
-    }
-    else
-    {
-        // Fallback resolution
-        this->_windowResolution = dimension2d<u32>(1024, 768);
-    }
-    
-    // Crucially, delete the temporary NULL device before creating the real device
-    nullDevice->drop();
-}
-
-// --- Initialize Definition ---
-bool Application::_initialize() {
-    _setWindowResolution();
+bool Application::BeginCore() {
+    this->_windowResolution = WindowResolution::Get();
 
     // 4. Create the main device using the fetched resolution
     device = createDevice(
@@ -66,4 +35,14 @@ bool Application::_initialize() {
     smgr = device->getSceneManager();
 
     return true;
+}
+
+void Application::BeginGUI() {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    
+    ImGui::StyleColorsDark();
+    ImGui_ImplOpenGL3_Init("#version 130");
 }

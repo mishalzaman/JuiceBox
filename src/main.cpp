@@ -5,6 +5,11 @@
 
 #include "Application.h"
 #include "JuiceBoxEventListener.h"
+#include "ImGuiInputHandler.h"
+
+// Helpers
+#include "helpers/VertexSelector.h"
+#include "helpers/Mesh.h"
 
 // ImGui includes
 #include "imgui.h"
@@ -29,95 +34,6 @@ struct VertexSelection {
     std::vector<u32> vertexIndices;
     vector3df worldPos;
 };
-
-bool getClosestVertex(ISceneManager* smgr, IVideoDriver* driver, 
-                      IMeshSceneNode* node, ICameraSceneNode* camera, 
-                      rect<s32> viewport, position2di mousePos,
-                      f32 pixelThreshold, vector3df& outPos,
-                      u32& outBufferIndex, std::vector<u32>& outIndices)
-{
-    // ... (Keep existing implementation of getClosestVertex)
-    bool found = false;
-    f32 minDistSq = pixelThreshold * pixelThreshold;
-    f32 closestDepth = FLT_MAX; 
-    outIndices.clear();
-
-    camera->updateAbsolutePosition(); 
-    matrix4 view = camera->getViewMatrix();
-    matrix4 proj = camera->getProjectionMatrix();
-    matrix4 world = node->getAbsoluteTransformation();
-    matrix4 viewProj = proj * view;
-
-    f32 vpW = (f32)viewport.getWidth();
-    f32 vpH = (f32)viewport.getHeight();
-    f32 vpX = (f32)viewport.UpperLeftCorner.X;
-    f32 vpY = (f32)viewport.UpperLeftCorner.Y;
-
-    IMesh* mesh = node->getMesh();
-    vector3df camPos = camera->getAbsolutePosition();
-
-    u32 closestVIndex = 0;
-    u32 closestBIndex = 0;
-    vector3df closestWorldPos;
-
-    for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
-        IMeshBuffer* mb = mesh->getMeshBuffer(b);
-        S3DVertex* vertices = (S3DVertex*)mb->getVertices();
-
-        for (u32 v = 0; v < mb->getVertexCount(); ++v) {
-            vector3df vPos = vertices[v].Pos;
-            world.transformVect(vPos);
-
-            f32 transformedPos[4] = { vPos.X, vPos.Y, vPos.Z, 1.0f };
-            viewProj.multiplyWith1x4Matrix(transformedPos);
-
-            if (transformedPos[3] == 0) continue;
-
-            f32 zDiv = 1.0f / transformedPos[3];
-            f32 ndcX = transformedPos[0] * zDiv;
-            f32 ndcY = transformedPos[1] * zDiv;
-
-            f32 screenX = (ndcX + 1.0f) * 0.5f * vpW + vpX;
-            f32 screenY = (1.0f - ndcY) * 0.5f * vpH + vpY;
-
-            f32 dx = screenX - mousePos.X;
-            f32 dy = screenY - mousePos.Y;
-            f32 distSq = dx*dx + dy*dy;
-
-            if (distSq < minDistSq) {
-                f32 trueDepthSq = vPos.getDistanceFromSQ(camPos);
-                if (trueDepthSq < closestDepth) {
-                    closestDepth = trueDepthSq;
-                    closestWorldPos = vPos;
-                    closestBIndex = b;
-                    closestVIndex = v;
-                    found = true;
-                }
-            }
-        }
-    }
-
-    if (found) {
-        outPos = closestWorldPos;
-        outBufferIndex = closestBIndex;
-        
-        IMeshBuffer* mb = mesh->getMeshBuffer(closestBIndex);
-        S3DVertex* vertices = (S3DVertex*)mb->getVertices();
-        
-        matrix4 invWorld;
-        node->getAbsoluteTransformation().getInverse(invWorld);
-        vector3df targetLocalPos = closestWorldPos;
-        invWorld.transformVect(targetLocalPos);
-
-        for (u32 v = 0; v < mb->getVertexCount(); ++v) {
-            if (vertices[v].Pos.equals(targetLocalPos, 0.001f)) {
-                outIndices.push_back(v);
-            }
-        }
-    }
-
-    return found;
-}
 
 vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera, 
                           position2di mousePos, vector3df originalPos, int viewportType,
@@ -175,75 +91,6 @@ vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera
     return originalPos;
 }
 
-void updateVertexPositions(IMeshSceneNode* node, u32 bufferIndex, const std::vector<u32>& indices, vector3df worldPos)
-{
-    // ... (Keep existing implementation of updateVertexPositions)
-    IMesh* mesh = node->getMesh();
-    if (bufferIndex >= mesh->getMeshBufferCount()) return;
-    
-    IMeshBuffer* mb = mesh->getMeshBuffer(bufferIndex);
-    S3DVertex* vertices = (S3DVertex*)mb->getVertices();
-    
-    matrix4 worldTransform = node->getAbsoluteTransformation();
-    matrix4 invWorld;
-    worldTransform.getInverse(invWorld);
-    
-    vector3df localPos = worldPos;
-    invWorld.transformVect(localPos);
-    
-    for (u32 idx : indices) {
-        if (idx < mb->getVertexCount()) {
-            vertices[idx].Pos = localPos;
-        }
-    }
-    
-    mb->setDirty(EBT_VERTEX);
-    mesh->setDirty();
-}
-
-// --- ImGui Integration ---
-
-class ImGuiInputHandler {
-public:
-    static bool wantCaptureMouse;
-    static bool wantCaptureKeyboard;
-    
-    static void processEvent(const SEvent& event) {
-        ImGuiIO& io = ImGui::GetIO();
-        
-        if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-            io.MousePos = ImVec2((float)event.MouseInput.X, (float)event.MouseInput.Y);
-            
-            if (event.MouseInput.Event == EMIE_LMOUSE_PRESSED_DOWN)
-                io.MouseDown[0] = true;
-            if (event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP)
-                io.MouseDown[0] = false;
-            if (event.MouseInput.Event == EMIE_RMOUSE_PRESSED_DOWN)
-                io.MouseDown[1] = true;
-            if (event.MouseInput.Event == EMIE_RMOUSE_LEFT_UP)
-                io.MouseDown[1] = false;
-            if (event.MouseInput.Event == EMIE_MMOUSE_PRESSED_DOWN)
-                io.MouseDown[2] = true;
-            if (event.MouseInput.Event == EMIE_MMOUSE_LEFT_UP)
-                io.MouseDown[2] = false;
-            if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
-                io.MouseWheel += event.MouseInput.Wheel;
-        }
-        
-        if (event.EventType == EET_KEY_INPUT_EVENT) {
-            // Casting the Irrlicht key directly to ImGuiKey for now to resolve error
-            io.AddKeyEvent((ImGuiKey)event.KeyInput.Key, event.KeyInput.PressedDown);
-            
-            if (event.KeyInput.PressedDown && event.KeyInput.Char != 0) {
-                io.AddInputCharacter(event.KeyInput.Char);
-            }
-        }
-        
-        wantCaptureMouse = io.WantCaptureMouse;
-        wantCaptureKeyboard = io.WantCaptureKeyboard;
-    }
-};
-
 // Define the bridge function AFTER the class definition
 void forwardEventToImGui(const SEvent& event) {
     // Safety check: Only forward events if the ImGui context has been created
@@ -251,25 +98,17 @@ void forwardEventToImGui(const SEvent& event) {
         ImGuiInputHandler::processEvent(event);
     }
 }
-
 bool ImGuiInputHandler::wantCaptureMouse = false;
 bool ImGuiInputHandler::wantCaptureKeyboard = false;
 
 // --- Main Loop ---
 
 int main() {
-    // ... (Keep existing implementation of main)
     Application engine;
-    ISceneCollisionManager* coll = engine.smgr->getSceneCollisionManager();
+    engine.BeginCore();
+    engine.BeginGUI();
 
-    // Initialize ImGui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    
-    ImGui::StyleColorsDark();
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ISceneCollisionManager* coll = engine.smgr->getSceneCollisionManager();
 
     // Scene Setup
     IMeshSceneNode* testMesh = engine.smgr->addCubeSceneNode(10.0f);
@@ -387,7 +226,7 @@ int main() {
                         std::vector<u32> indices;
                         f32 selectThreshold = 45.0f; 
 
-                        bool found = getClosestVertex(engine.smgr, engine.driver, 
+                        bool found = VertexSelector::Get(engine.smgr, engine.driver, 
                                                     testMesh, activeCam, 
                                                     activeRect, engine.receiver.MouseState.Position,
                                                     selectThreshold, hitPos, bufIdx, indices);
@@ -412,7 +251,7 @@ int main() {
                                                           selection.worldPos, activeViewportType,
                                                           activeRect);
 
-                        updateVertexPositions(testMesh, selection.bufferIndex, selection.vertexIndices, newPos);
+                        Mesh::Update(testMesh, selection.bufferIndex, selection.vertexIndices, newPos);
                         
                         selection.worldPos = newPos;
                         if (currentMarker) currentMarker->setPosition(newPos);
@@ -433,10 +272,11 @@ int main() {
             ImGui_ImplOpenGL3_NewFrame();
             ImGui::NewFrame();
 
-            // 2. Render the Toolbar and capture its height
-            float toolbarHeight = 0;
+            // 2. Render the Toolbar with fixed 5% height
+            float toolbarHeight = screenSize.Height * 0.05f; // 5% of window height
+
             ImGui::SetNextWindowPos(ImVec2(0, 0));
-            ImGui::SetNextWindowSize(ImVec2((float)screenSize.Width, 0)); // Height 0 allows auto-fit
+            ImGui::SetNextWindowSize(ImVec2((float)screenSize.Width, toolbarHeight));
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | 
                                             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | 
@@ -451,7 +291,6 @@ int main() {
                     // ... other menus
                     ImGui::EndMenuBar();
                 }
-                toolbarHeight = ImGui::GetWindowHeight(); // This scales with your UI/font
             }
             ImGui::End();
 
@@ -490,9 +329,6 @@ int main() {
             engine.driver->endScene();
         }
     }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui::DestroyContext();
 
     return 0;
 }

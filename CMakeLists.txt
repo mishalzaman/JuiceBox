@@ -78,8 +78,18 @@ endif()
 # ==============================================================================
 # 4. Define Main Application
 # ==============================================================================
-set(JUICEBOX_SOURCES src/main.cpp src/Application.cpp)
-set(JUICEBOX_HEADERS src/JuiceBoxEventListener.h src/Application.h)
+set(JUICEBOX_SOURCES 
+    src/main.cpp 
+    src/Application.cpp
+)
+set(JUICEBOX_HEADERS 
+    src/JuiceBoxEventListener.h 
+    src/Application.h 
+    src/ImGuiInputHandler.h 
+    src/helpers/WindowResolution.h
+    src/helpers/VertexSelector.h
+    src/helpers/Mesh.h
+)
 
 add_executable(JuiceBox ${JUICEBOX_SOURCES})
 target_sources(JuiceBox PRIVATE ${JUICEBOX_HEADERS})
