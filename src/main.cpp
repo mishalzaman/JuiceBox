@@ -6,6 +6,7 @@
 #include "Application.h"
 #include "JuiceBoxEventListener.h"
 #include "ImGuiInputHandler.h"
+#include "editor/Editor.h"
 
 // Helpers
 #include "helpers/VertexSelector.h"
@@ -104,29 +105,30 @@ bool ImGuiInputHandler::wantCaptureKeyboard = false;
 // --- Main Loop ---
 
 int main() {
-    Application engine;
-    engine.BeginCore();
-    engine.BeginGUI();
+    Application app;
+    app.BeginCore();
+    app.BeginGUI();
 
-    ISceneCollisionManager* coll = engine.smgr->getSceneCollisionManager();
+    Editor editor(app);
+
+    ISceneCollisionManager* coll = app.smgr->getSceneCollisionManager();
 
     // Scene Setup
-    IMeshSceneNode* testMesh = engine.smgr->addCubeSceneNode(10.0f);
+    IMeshSceneNode* testMesh = app.smgr->addCubeSceneNode(10.0f);
     if (testMesh) {
         testMesh->setPosition(vector3df(0, 0, 0));
-        testMesh->setMaterialFlag(EMF_LIGHTING, false); 
-        // testMesh->getMesh()->setHardwareMappingHint(EHM_DYNAMIC);
+        testMesh->setMaterialFlag(EMF_LIGHTING, false);
     }
 
-    engine.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
+    app.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
 
     // Cameras
-    ICameraSceneNode* camTop = engine.smgr->addCameraSceneNode(0, vector3df(0, 50, 0), vector3df(0, 0, 0));
+    ICameraSceneNode* camTop = app.smgr->addCameraSceneNode(0, vector3df(0, 50, 0), vector3df(0, 0, 0));
     camTop->setUpVector(vector3df(0, 0, 1)); 
     
-    ICameraSceneNode* camModel = engine.smgr->addCameraSceneNode(0, vector3df(10, 10, -10), vector3df(0, 0, 0));
-    ICameraSceneNode* camFront = engine.smgr->addCameraSceneNode(0, vector3df(0, 0, -50), vector3df(0, 0, 0));
-    ICameraSceneNode* camRight = engine.smgr->addCameraSceneNode(0, vector3df(50, 0, 0), vector3df(0, 0, 0));
+    ICameraSceneNode* camModel = app.smgr->addCameraSceneNode(0, vector3df(10, 10, -10), vector3df(0, 0, 0));
+    ICameraSceneNode* camFront = app.smgr->addCameraSceneNode(0, vector3df(0, 0, -50), vector3df(0, 0, 0));
+    ICameraSceneNode* camRight = app.smgr->addCameraSceneNode(0, vector3df(50, 0, 0), vector3df(0, 0, 0));
 
     matrix4 ortho;
     ortho.buildProjectionMatrixOrthoLH(30, 22, 0, 100); 
@@ -139,7 +141,7 @@ int main() {
     f32 theta = 0.0f;
     f32 phi = 45.0f;
     
-    position2di lastMousePos = engine.receiver.MouseState.Position;
+    position2di lastMousePos = app.receiver.MouseState.Position;
 
     ISceneNode* currentMarker = 0;
     VertexSelection selection;
@@ -150,14 +152,14 @@ int main() {
     int clickCount = 0;
     float cubeScale = 1.0f;
 
-    while(engine.device->run()) {
+    while(app.device->run()) {
         
-        if (engine.receiver.IsKeyDown(KEY_ESCAPE)) {
-            engine.device->closeDevice(); 
+        if (app.receiver.IsKeyDown(KEY_ESCAPE)) {
+            app.device->closeDevice(); 
         }
 
-        if (engine.device->isWindowActive()) {
-            dimension2d<u32> screenSize = engine.driver->getScreenSize();
+        if (app.device->isWindowActive()) {
+            dimension2d<u32> screenSize = app.driver->getScreenSize();
             s32 w = screenSize.Width;
             s32 h = screenSize.Height;
             s32 midW = w / 2;
@@ -181,7 +183,7 @@ int main() {
                     activeCam = camRight; activeRect = bottomRightRect; inOrthoViewport = true; 
                 }
             } else {
-                position2di mPos = engine.receiver.MouseState.Position;
+                position2di mPos = app.receiver.MouseState.Position;
                 if (topLeftRect.isPointInside(mPos)) {
                     activeCam = camTop; activeRect = topLeftRect; inOrthoViewport = true; activeViewportType = 0;
                 }
@@ -199,11 +201,11 @@ int main() {
                 }
             }
 
-            if (!ImGuiInputHandler::wantCaptureMouse && engine.receiver.MouseState.LeftButtonDown) {
+            if (!ImGuiInputHandler::wantCaptureMouse && app.receiver.MouseState.LeftButtonDown) {
                 
                 if (!isDragging && activeViewportType == 3) {
-                    s32 dx = engine.receiver.MouseState.Position.X - lastMousePos.X;
-                    s32 dy = engine.receiver.MouseState.Position.Y - lastMousePos.Y;
+                    s32 dx = app.receiver.MouseState.Position.X - lastMousePos.X;
+                    s32 dy = app.receiver.MouseState.Position.Y - lastMousePos.Y;
                     theta -= dx * 0.2f; 
                     phi += dy * 0.2f;  
                     if (phi > 89.0f) phi = 89.0f;
@@ -226,9 +228,9 @@ int main() {
                         std::vector<u32> indices;
                         f32 selectThreshold = 45.0f; 
 
-                        bool found = VertexSelector::Get(engine.smgr, engine.driver, 
+                        bool found = VertexSelector::Get(app.smgr, app.driver, 
                                                     testMesh, activeCam, 
-                                                    activeRect, engine.receiver.MouseState.Position,
+                                                    activeRect, app.receiver.MouseState.Position,
                                                     selectThreshold, hitPos, bufIdx, indices);
 
                         if (found) {
@@ -239,7 +241,7 @@ int main() {
                             isDragging = true;
 
                             if (currentMarker) currentMarker->remove();
-                            currentMarker = engine.smgr->addSphereSceneNode(0.5f);
+                            currentMarker = app.smgr->addSphereSceneNode(0.5f);
                             currentMarker->setPosition(hitPos);
                             currentMarker->setMaterialFlag(EMF_LIGHTING, false);
                             currentMarker->setMaterialFlag(EMF_ZBUFFER, false);
@@ -247,7 +249,7 @@ int main() {
                     }
                     else if (isDragging && selection.isSelected) {
                         vector3df newPos = getDragPosition(coll, activeCam, 
-                                                          engine.receiver.MouseState.Position, 
+                                                          app.receiver.MouseState.Position, 
                                                           selection.worldPos, activeViewportType,
                                                           activeRect);
 
@@ -258,12 +260,12 @@ int main() {
                     }
                 }
             }
-            else if (!engine.receiver.MouseState.LeftButtonDown) {
+            else if (!app.receiver.MouseState.LeftButtonDown) {
                 isDragging = false;
                 selection.isSelected = false;
             }
             
-            lastMousePos = engine.receiver.MouseState.Position;
+            lastMousePos = app.receiver.MouseState.Position;
 
             // Send screen dimensions
             ImGuiIO& io = ImGui::GetIO();
@@ -285,7 +287,7 @@ int main() {
             if (ImGui::Begin("MainToolbar", nullptr, window_flags)) {
                 if (ImGui::BeginMenuBar()) {
                     if (ImGui::BeginMenu("File")) {
-                        if (ImGui::MenuItem("Exit")) engine.device->closeDevice();
+                        if (ImGui::MenuItem("Exit")) app.device->closeDevice();
                         ImGui::EndMenu();
                     }
                     // ... other menus
@@ -296,37 +298,41 @@ int main() {
 
             ImGui::Render();
 
-            engine.driver->beginScene(true, true, SColor(255, 40, 40, 40));
+            app.driver->beginScene(true, true, SColor(255, 40, 40, 40));
 
             // Viewport Rendering
-            engine.driver->setViewPort(rect<s32>(0, 0, midW, midH));
-            engine.smgr->setActiveCamera(camTop);    
+            app.driver->setViewPort(rect<s32>(0, 0, midW, midH));
+            app.smgr->setActiveCamera(camTop);    
             if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-            engine.smgr->drawAll();
+            if(testMesh) testMesh->setMaterialFlag(EMF_LIGHTING, false);
+            app.smgr->drawAll();
             
-            engine.driver->setViewPort(rect<s32>(midW, 0, w, midH));
-            engine.smgr->setActiveCamera(camModel);
+            app.driver->setViewPort(rect<s32>(midW, 0, w, midH));
+            app.smgr->setActiveCamera(camModel);
             if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, false);
-            engine.smgr->drawAll();
+            if(testMesh) testMesh->setMaterialFlag(EMF_LIGHTING, true);
+            app.smgr->drawAll();
 
-            engine.driver->setViewPort(rect<s32>(0, midH, midW, h));
-            engine.smgr->setActiveCamera(camFront);
+            app.driver->setViewPort(rect<s32>(0, midH, midW, h));
+            app.smgr->setActiveCamera(camFront);
             if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-            engine.smgr->drawAll();
+            if(testMesh) testMesh->setMaterialFlag(EMF_LIGHTING, false);
+            app.smgr->drawAll();
 
-            engine.driver->setViewPort(rect<s32>(midW, midH, w, h));
-            engine.smgr->setActiveCamera(camRight);
+            app.driver->setViewPort(rect<s32>(midW, midH, w, h));
+            app.smgr->setActiveCamera(camRight);
             if(testMesh) testMesh->setMaterialFlag(EMF_WIREFRAME, true);
-            engine.smgr->drawAll();
+            if(testMesh) testMesh->setMaterialFlag(EMF_LIGHTING, false);
+            app.smgr->drawAll();
 
-            engine.driver->setViewPort(rect<s32>(0, 0, w, h));
+            app.driver->setViewPort(rect<s32>(0, 0, w, h));
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             
             SColor borderColor(255, 100, 100, 100);
-            engine.driver->draw2DLine(position2d<s32>(midW, 0), position2d<s32>(midW, h), borderColor);
-            engine.driver->draw2DLine(position2d<s32>(0, midH), position2d<s32>(w, midH), borderColor);
+            app.driver->draw2DLine(position2d<s32>(midW, 0), position2d<s32>(midW, h), borderColor);
+            app.driver->draw2DLine(position2d<s32>(0, midH), position2d<s32>(w, midH), borderColor);
 
-            engine.driver->endScene();
+            app.driver->endScene();
         }
     }
 

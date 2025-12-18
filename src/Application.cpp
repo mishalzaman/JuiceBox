@@ -1,4 +1,5 @@
 #include "Application.h"
+#include <iostream>
 
 Application::Application() : device(nullptr), driver(nullptr), smgr(nullptr) {
 }
@@ -10,6 +11,8 @@ Application::~Application() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
+
+    std::cout << "Shutdown Application" << std::endl;
 }
 
 bool Application::BeginCore() {

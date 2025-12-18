@@ -81,14 +81,22 @@ endif()
 set(JUICEBOX_SOURCES 
     src/main.cpp 
     src/Application.cpp
+    src/editor/Editor.cpp
+    src/painter/Painter.cpp
+    src/Viewport.cpp
+    src/Camera.cpp
 )
 set(JUICEBOX_HEADERS 
     src/JuiceBoxEventListener.h 
     src/Application.h 
-    src/ImGuiInputHandler.h 
+    src/ImGuiInputHandler.h
+    src/editor/Editor.h
+    src/painter/Painter.h
     src/helpers/WindowResolution.h
     src/helpers/VertexSelector.h
     src/helpers/Mesh.h
+    src/Viewport.h
+    src/Camera.h
 )
 
 add_executable(JuiceBox ${JUICEBOX_SOURCES})
