@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "Camera.h"
+#include "Viewport.h"
 
 using namespace irr;
 using namespace core;
@@ -22,6 +23,7 @@ private:
     Application& _application;
 
     void _setupDefaultMesh();
+    void _setViewports();
 
     // Camera constants - declare only
     static const vector3df CAMERA_LOOKAT;
@@ -35,4 +37,8 @@ private:
     Camera _cameraModel;
     Camera _cameraFront;
     Camera _cameraRight;
+    Viewport _vTop;
+    Viewport _vModel;
+    Viewport _vFront;
+    Viewport _vRight;
 };
