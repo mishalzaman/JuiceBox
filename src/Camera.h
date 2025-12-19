@@ -20,6 +20,7 @@ public:
     );
     ~Camera();
 
+    ICameraSceneNode* GetCameraSceneNode() { return _camera; }
     void SetUpVector(vector3df up) { _camera->setUpVector(up); }
 
 private:

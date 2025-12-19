@@ -23,6 +23,7 @@ Editor::Editor(Application& application)
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
 
     _setViewports();
+    _setupDefaultMesh();
 }
 
 Editor::~Editor()
@@ -32,6 +33,11 @@ Editor::~Editor()
 
 void Editor::Draw()
 {
+    _vTop.RenderWireframe(_defaultMesh);
+    _vModel.Render(_defaultMesh);
+    _vFront.RenderWireframe(_defaultMesh);
+    _vRight.RenderWireframe(_defaultMesh);
+    _application.driver->setViewPort(rect<s32>(0, 0, _screenSize.Width, _screenSize.Height));
 }
 
 void Editor::Update()
@@ -40,13 +46,13 @@ void Editor::Update()
 
 void Editor::_setupDefaultMesh()
 {
-    ISceneCollisionManager* coll = _application.smgr->getSceneCollisionManager();
+    _collisionManager = _application.smgr->getSceneCollisionManager();
 
     // Scene Setup
-    IMeshSceneNode* testMesh = _application.smgr->addCubeSceneNode(10.0f);
-    if (testMesh) {
-        testMesh->setPosition(vector3df(0, 0, 0));
-        testMesh->setMaterialFlag(EMF_LIGHTING, false);
+    _defaultMesh = _application.smgr->addCubeSceneNode(10.0f);
+    if (_defaultMesh) {
+        _defaultMesh->setPosition(vector3df(0, 0, 0));
+        _defaultMesh->setMaterialFlag(EMF_LIGHTING, false);
     }
 
     _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
@@ -54,9 +60,9 @@ void Editor::_setupDefaultMesh()
 
 void Editor::_setViewports()
 {
-    dimension2d<u32> screenSize = _application.driver->getScreenSize();
-    s32 w = screenSize.Width;
-    s32 h = screenSize.Height;
+    _screenSize = _application.driver->getScreenSize();
+    s32 w = _screenSize.Width;
+    s32 h = _screenSize.Height;
     s32 midW = w / 2;
     s32 midH = h / 2;
 

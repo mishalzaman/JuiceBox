@@ -21,6 +21,10 @@ public:
     
 private:
     Application& _application;
+    dimension2d<u32> _screenSize;
+    ISceneCollisionManager* _collisionManager;
+    IMeshSceneNode* _defaultMesh;
+
 
     void _setupDefaultMesh();
     void _setViewports();
