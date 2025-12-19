@@ -32,3 +32,8 @@ void Viewport::RenderWireframe(IMeshSceneNode *mesh)
     if(mesh) mesh->setMaterialFlag(EMF_LIGHTING, false);
     _application.smgr->drawAll();
 }
+
+bool Viewport::IsActive(position2di mousePosition)
+{
+    return _viewportSegment.isPointInside(mousePosition);
+}

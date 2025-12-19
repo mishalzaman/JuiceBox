@@ -17,7 +17,7 @@ public:
     ~Editor();
 
     void Draw();
-    void Update();
+    void Update(position2di mousePosition);
     
 private:
     Application& _application;
@@ -45,4 +45,5 @@ private:
     Viewport _vModel;
     Viewport _vFront;
     Viewport _vRight;
+    Viewport* _activeViewport;
 };

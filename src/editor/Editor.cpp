@@ -17,7 +17,8 @@ Editor::Editor(Application& application)
       _vTop(_application, _cameraTop),
       _vModel(_application, _cameraModel),
       _vFront(_application, _cameraFront),
-      _vRight(_application, _cameraRight)
+      _vRight(_application, _cameraRight),
+      _activeViewport(nullptr)
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
@@ -40,8 +41,20 @@ void Editor::Draw()
     _application.driver->setViewPort(rect<s32>(0, 0, _screenSize.Width, _screenSize.Height));
 }
 
-void Editor::Update()
+void Editor::Update(position2di mousePosition)
 {
+    _setViewports();
+
+    if (_vTop.IsActive(mousePosition)) { _activeViewport = &_vTop; }
+    if (_vModel.IsActive(mousePosition)) { _activeViewport = &_vModel; }
+    if (_vFront.IsActive(mousePosition)) { _activeViewport = &_vFront; }
+    if (_vRight.IsActive(mousePosition)) { _activeViewport = &_vRight; }
+
+    // In Editor.cpp
+    if (_activeViewport == &_vTop) { std::cout << "Active viewport: Top" << std::endl; }
+    else if (_activeViewport == &_vModel) { std::cout << "Active viewport: Model" << std::endl; }
+    else if (_activeViewport == &_vFront) { std::cout << "Active viewport: Front" << std::endl; }
+    else if (_activeViewport == &_vRight) { std::cout << "Active viewport: Right" << std::endl; }
 }
 
 void Editor::_setupDefaultMesh()
