@@ -15,6 +15,7 @@ public:
     // Mouse State
     struct SMouseState {
         position2di Position;
+        position2di LastPosition;
         bool LeftButtonDown;
     } MouseState;
 
@@ -25,6 +26,8 @@ public:
             KeyIsDown[i] = false;
         
         MouseState.LeftButtonDown = false;
+        MouseState.Position = position2di(0, 0);
+        MouseState.LastPosition = position2di(0, 0);
     }
 
     virtual bool OnEvent(const SEvent& event) {
@@ -41,6 +44,7 @@ public:
                     MouseState.LeftButtonDown = false;
                     break;
                 case EMIE_MOUSE_MOVED:
+                    MouseState.LastPosition = MouseState.Position;
                     MouseState.Position.X = event.MouseInput.X;
                     MouseState.Position.Y = event.MouseInput.Y;
                     break;

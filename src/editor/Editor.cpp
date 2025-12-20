@@ -41,20 +41,29 @@ void Editor::Draw()
     _application.driver->setViewPort(rect<s32>(0, 0, _screenSize.Width, _screenSize.Height));
 }
 
-void Editor::Update(position2di mousePosition)
+void Editor::Update()
 {
     _setViewports();
 
-    if (_vTop.IsActive(mousePosition)) { _activeViewport = &_vTop; }
-    if (_vModel.IsActive(mousePosition)) { _activeViewport = &_vModel; }
-    if (_vFront.IsActive(mousePosition)) { _activeViewport = &_vFront; }
-    if (_vRight.IsActive(mousePosition)) { _activeViewport = &_vRight; }
+    // Get active viewport
+    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vTop; }
+    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vModel; }
+    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vFront; }
+    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vRight; }
+    else { _activeViewport = nullptr; }
 
-    // In Editor.cpp
-    if (_activeViewport == &_vTop) { std::cout << "Active viewport: Top" << std::endl; }
-    else if (_activeViewport == &_vModel) { std::cout << "Active viewport: Model" << std::endl; }
-    else if (_activeViewport == &_vFront) { std::cout << "Active viewport: Front" << std::endl; }
-    else if (_activeViewport == &_vRight) { std::cout << "Active viewport: Right" << std::endl; }
+    // Model rotation
+    if (_isDragging && _activeViewport == &_vModel) {
+        position2di md = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
+        _activeViewport->GetCamera().Rotate(md.X, md.Y);
+    }
+
+    // // In Editor.cpp
+    // if (_activeViewport == &_vTop) { std::cout << "Active viewport: Top" << std::endl; }
+    // else if (_activeViewport == &_vModel) { std::cout << "Active viewport: Model" << std::endl; }
+    // else if (_activeViewport == &_vFront) { std::cout << "Active viewport: Front" << std::endl; }
+    // else if (_activeViewport == &_vRight) { std::cout << "Active viewport: Right" << std::endl; }
+    // else { std::cout << "No active viewports"; }
 }
 
 void Editor::_setupDefaultMesh()

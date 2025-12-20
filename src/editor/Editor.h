@@ -17,7 +17,9 @@ public:
     ~Editor();
 
     void Draw();
-    void Update(position2di mousePosition);
+    void Update();
+
+    void SetIsDragging(bool val) { _isDragging = val; }
     
 private:
     Application& _application;
@@ -29,7 +31,7 @@ private:
     void _setupDefaultMesh();
     void _setViewports();
 
-    // Camera constants - declare only
+    // Camera constants
     static const vector3df CAMERA_LOOKAT;
     static const vector3df CAMERA_TOP_POS;
     static const vector3df CAMERA_TOP_UP;
@@ -37,6 +39,7 @@ private:
     static const vector3df CAMERA_FRONT_POS;
     static const vector3df CAMERA_RIGHT_POS;
 
+    // Camera and Viewports
     Camera _cameraTop;
     Camera _cameraModel;
     Camera _cameraFront;
@@ -46,4 +49,6 @@ private:
     Viewport _vFront;
     Viewport _vRight;
     Viewport* _activeViewport;
+
+    bool _isDragging = false;
 };

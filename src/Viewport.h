@@ -12,6 +12,7 @@ class Viewport {
         void Render(IMeshSceneNode* mesh);
         void RenderWireframe(IMeshSceneNode* mesh);
         bool IsActive(position2di mousePosition);
+        Camera& GetCamera() { return _camera; }
 
     private:
         Application& _application;

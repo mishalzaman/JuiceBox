@@ -22,6 +22,7 @@ public:
 
     ICameraSceneNode* GetCameraSceneNode() { return _camera; }
     void SetUpVector(vector3df up) { _camera->setUpVector(up); }
+    void Rotate(float mouseDeltaX, float mouseDeltaY);
 
 private:
     ICameraSceneNode* _camera;
@@ -35,8 +36,8 @@ private:
     matrix4 _orthographic;
     
     // Orthographic projection constants
-    static constexpr int ORTHO_WIDTH_VIEW = 30;
-    static constexpr int ORTHO_HEIGHT_VIEW = 22;
+    static constexpr int ORTHO_WIDTH_VIEW = 30;  
+    static constexpr int ORTHO_HEIGHT_VIEW = 22; // Need to update this to equal the viewport ratio
     static constexpr int ORTHO_NEAR = 0;
     static constexpr int ORTHO_FAR = 100;
 };

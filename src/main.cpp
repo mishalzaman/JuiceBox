@@ -121,9 +121,23 @@ int main() {
         }
 
         if (app.device->isWindowActive()) {
-            position2di mousePosition = app.receiver.MouseState.Position;
-            editor.Update(mousePosition);
+            /* ================================
+            USER INTERACTION
+            =================================*/
+            if (app.receiver.MouseState.LeftButtonDown) {
+                editor.SetIsDragging(true);
+            } else {
+                editor.SetIsDragging(false);
+            }
 
+            /* ================================
+            UPDATE
+            =================================*/
+            editor.Update();
+
+            /* ================================
+            RENDER
+            =================================*/
             app.driver->beginScene(true, true, SColor(255, 40, 40, 40));
             editor.Draw();
             app.driver->endScene();
