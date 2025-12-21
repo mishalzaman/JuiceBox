@@ -18,7 +18,8 @@ Editor::Editor(Application& application)
       _vModel(_application, _cameraModel),
       _vFront(_application, _cameraFront),
       _vRight(_application, _cameraRight),
-      _activeViewport(nullptr)
+      _activeViewport(nullptr),
+      _highlightedVertex(nullptr)
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
@@ -44,6 +45,7 @@ void Editor::Draw()
 void Editor::Update()
 {
     _setViewports();
+    _removeVertexHighlight();
 
     // Get active viewport
     if (_vTop.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vTop; }
@@ -54,16 +56,52 @@ void Editor::Update()
 
     // Model rotation
     if (_isDragging && _activeViewport == &_vModel) {
-        position2di md = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
-        _activeViewport->GetCamera().Rotate(md.X, md.Y);
+        position2di mouseDelta = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
+        _activeViewport->GetCamera().Rotate(mouseDelta.X, mouseDelta.Y);
     }
 
-    // // In Editor.cpp
-    // if (_activeViewport == &_vTop) { std::cout << "Active viewport: Top" << std::endl; }
-    // else if (_activeViewport == &_vModel) { std::cout << "Active viewport: Model" << std::endl; }
-    // else if (_activeViewport == &_vFront) { std::cout << "Active viewport: Front" << std::endl; }
-    // else if (_activeViewport == &_vRight) { std::cout << "Active viewport: Right" << std::endl; }
-    // else { std::cout << "No active viewports"; }
+    // Highlight vertex
+    if (_activeViewport && 
+        _activeViewport != &_vModel) {
+        VertexSelection selection = Vertex::Select(_application, _defaultMesh, _activeViewport->GetCamera().GetCameraSceneNode(), _activeViewport->GetViewportSegment());
+        std::cout << selection.isSelected << std::endl;
+
+        if (selection.isSelected) {
+            _addVertexHighlight(selection);
+        }
+    }
+
+    // Select vertex
+    if (_activeViewport &&
+        _activeViewport != &_vModel &&
+        _highlightedVertex &&
+        _application.receiver.MouseState.LeftButtonDown) {
+        
+        ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
+        selected->setPosition(_highlightedVertex->getPosition());
+        selected->setMaterialFlag(EMF_LIGHTING, false); 
+        selected->setMaterialFlag(EMF_ZBUFFER, false);  
+        selected->getMaterial(0).DiffuseColor.set(255, 0, 255, 0);
+
+        _selectedVertex.push_back(selected);
+
+        _removeVertexHighlight();
+    }
+
+    // Move vertex
+    if (_activeViewport &&
+        _activeViewport != &_vModel &&
+        !_selectedVertex.empty() &&
+        _selectedVertex[0] != nullptr &&
+        _application.receiver.MouseState.LeftButtonDown
+    ) {
+      // Move selected vertices
+    }
+}
+
+void Editor::ClearVertices()
+{
+    _clearVertices();
 }
 
 void Editor::_setupDefaultMesh()
@@ -92,4 +130,30 @@ void Editor::_setViewports()
     _vModel.UpdateViewport(midW, 0, w, midH);
     _vFront.UpdateViewport(0, midH, midW, h);
     _vRight.UpdateViewport(midW, midH, w, h);
+}
+
+void Editor::_addVertexHighlight(VertexSelection& selection)
+{
+    _highlightedVertex = _application.smgr->addCubeSceneNode(0.5f);
+    _highlightedVertex->setPosition(selection.worldPos);
+    _highlightedVertex->setMaterialFlag(EMF_LIGHTING, false);
+    _highlightedVertex->setMaterialFlag(EMF_ZBUFFER, false);
+}
+
+void Editor::_removeVertexHighlight()
+{
+    if (_highlightedVertex) {
+        _highlightedVertex->remove();
+        _highlightedVertex = nullptr;
+    };
+}
+
+void Editor::_clearVertices()
+{
+    for (ISceneNode* node : _selectedVertex) {
+        if (node) {
+            node->remove();
+        }
+    }
+    _selectedVertex.clear();
 }

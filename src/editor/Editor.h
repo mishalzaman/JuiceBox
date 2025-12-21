@@ -1,8 +1,11 @@
 #pragma once
 
+#include <vector>
+
 #include "Application.h"
 #include "Camera.h"
 #include "Viewport.h"
+#include "helpers/Vertex.h"
 
 using namespace irr;
 using namespace core;
@@ -20,6 +23,7 @@ public:
     void Update();
 
     void SetIsDragging(bool val) { _isDragging = val; }
+    void ClearVertices();
     
 private:
     Application& _application;
@@ -50,5 +54,14 @@ private:
     Viewport _vRight;
     Viewport* _activeViewport;
 
+    // Vertex Selections
+    ISceneNode* _highlightedVertex = nullptr;
+    std::vector<ISceneNode*> _selectedVertex = {};
+    void _addVertexHighlight(VertexSelection& selection);
+    void _removeVertexHighlight();
+    void _clearVertices();
+
     bool _isDragging = false;
+
+
 };

@@ -29,12 +29,12 @@ using namespace gui;
 
 // --- Structures and Helper Functions ---
 
-struct VertexSelection {
-    bool isSelected = false;
-    u32 bufferIndex = 0;
-    std::vector<u32> vertexIndices;
-    vector3df worldPos;
-};
+// struct VertexSelection {
+//     bool isSelected = false;
+//     u32 bufferIndex = 0;
+//     std::vector<u32> vertexIndices;
+//     vector3df worldPos;
+// };
 
 vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera, 
                           position2di mousePos, vector3df originalPos, int viewportType,
@@ -118,6 +118,10 @@ int main() {
     while(app.device->run()) {
         if (app.receiver.IsKeyDown(KEY_ESCAPE)) {
             app.device->closeDevice(); 
+        }
+
+        if (app.receiver.IsKeyDown(KEY_KEY_A)) {
+            editor.ClearVertices();
         }
 
         if (app.device->isWindowActive()) {
