@@ -19,6 +19,7 @@ Camera::Camera(
         );
         _camera->setProjectionMatrix(_orthographic, true);
     }
+    _setInitialPosition();
 }
 
 Camera::~Camera()
@@ -39,4 +40,23 @@ void Camera::Rotate(float mouseDeltaX, float mouseDeltaY)
     f32 z = r * cos(radPhi) * cos(radTheta) * -1; 
     _camera->setPosition(vector3df(x, y, z));
     _camera->setTarget(vector3df(0,0,0)); 
+}
+
+void Camera::_setInitialPosition()
+{
+    vector3df pos = _camera->getPosition();
+    _cameraRadius = pos.getLength();
+
+    // Calculate Phi (Latitude) - angle from the XZ plane
+    // asin returns radians, convert to degrees
+    _phi = asin(pos.Y / _cameraRadius) * RADTODEG;
+
+    // Calculate Theta (Longitude)
+    // atan2 handles the quadrants correctly
+    // We multiply z by -1 to match your specific coordinate mapping in Rotate()
+    _theta = atan2(pos.X, pos.Z * -1.0f) * RADTODEG;
+
+    // Clamp phi just in case the initial position is exactly top/bottom
+    if (_phi > 89.0f) _phi = 89.0f;
+    if (_phi < -89.0f) _phi = -89.0f;
 }

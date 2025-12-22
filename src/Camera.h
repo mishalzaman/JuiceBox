@@ -41,4 +41,6 @@ private:
     static constexpr int ORTHO_HEIGHT_VIEW = 22; // Need to update this to equal the viewport ratio
     static constexpr int ORTHO_NEAR = 0;
     static constexpr int ORTHO_FAR = 100;
+
+    void _setInitialPosition();
 };
