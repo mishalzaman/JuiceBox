@@ -1,11 +1,12 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "Application.h"
 #include "Camera.h"
 #include "Viewport.h"
-#include "helpers/Vertex.h"
+#include "mode/Vertex.h"
 
 using namespace irr;
 using namespace core;
@@ -55,11 +56,7 @@ private:
     Viewport* _activeViewport;
 
     // Vertex Selections
-    ISceneNode* _highlightedVertex = nullptr;
-    std::vector<ISceneNode*> _selectedVertex = {};
-    void _addVertexHighlight(VertexSelection& selection);
-    void _removeVertexHighlight();
-    void _clearVertices();
+    std::unique_ptr<Mode::Vertex> _vertex;
 
     bool _isDragging = false;
 

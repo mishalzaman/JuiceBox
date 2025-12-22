@@ -9,7 +9,6 @@
 #include "editor/Editor.h"
 
 // Helpers
-#include "helpers/VertexSelector.h"
 #include "helpers/Mesh.h"
 
 // ImGui includes
