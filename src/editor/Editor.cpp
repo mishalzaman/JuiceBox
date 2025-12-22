@@ -79,9 +79,11 @@ void Editor::Update()
         
         ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
         selected->setPosition(_vertex->GetHighlighted()->getPosition());
-        selected->setMaterialFlag(EMF_LIGHTING, false); 
-        selected->setMaterialFlag(EMF_ZBUFFER, false);  
-        selected->getMaterial(0).DiffuseColor.set(255, 0, 255, 0);
+        selected->setMaterialFlag(EMF_LIGHTING, true);
+        selected->setMaterialFlag(EMF_ZBUFFER, false);
+        selected->setMaterialFlag(EMF_ZWRITE_ENABLE, false);  // Don't write to depth buffer
+
+        selected->getMaterial(0).EmissiveColor.set(255, 0, 255, 0); // Bright green
 
         _vertex->AddToSelected(selected);
 
