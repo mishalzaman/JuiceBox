@@ -23,7 +23,6 @@ public:
     void Draw();
     void Update();
 
-    void SetIsDragging(bool val) { _isDragging = val; }
     void ClearVertices();
     
 private:
@@ -57,8 +56,4 @@ private:
 
     // Vertex Selections
     std::unique_ptr<Mode::Vertex> _vertex;
-
-    bool _isDragging = false;
-
-
 };

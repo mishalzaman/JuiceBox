@@ -27,8 +27,8 @@ Camera::~Camera()
 
 void Camera::Rotate(float mouseDeltaX, float mouseDeltaY)
 {
-    _theta -= mouseDeltaX * 0.2f; 
-    _phi += mouseDeltaY * 0.2f;  
+    _theta -= mouseDeltaX * _sensitivity; 
+    _phi += mouseDeltaY * _sensitivity;  
     if (_phi > 89.0f) _phi = 89.0f;
     if (_phi < -89.0f) _phi = -89.0f;
     f32 r = _cameraRadius;

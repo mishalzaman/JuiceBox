@@ -32,6 +32,7 @@ private:
     f32 _cameraRadius = 20.0f;
     f32 _theta = 0.0f;
     f32 _phi = 45.0f;
+    float _sensitivity = 0.4f;
 
     matrix4 _orthographic;
     

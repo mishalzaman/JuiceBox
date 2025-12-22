@@ -127,11 +127,7 @@ int main() {
             /* ================================
             USER INTERACTION
             =================================*/
-            if (app.receiver.MouseState.LeftButtonDown) {
-                editor.SetIsDragging(true);
-            } else {
-                editor.SetIsDragging(false);
-            }
+
 
             /* ================================
             UPDATE
@@ -144,6 +140,7 @@ int main() {
             app.driver->beginScene(true, true, SColor(255, 40, 40, 40));
             editor.Draw();
             app.driver->endScene();
+            app.receiver.UpdateLastPosition();
         }
     }
 

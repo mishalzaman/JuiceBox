@@ -55,7 +55,7 @@ void Editor::Update()
     else { _activeViewport = nullptr; }
 
     // Model rotation
-    if (_isDragging && _activeViewport == &_vModel) {
+    if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
         position2di mouseDelta = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
         _activeViewport->GetCamera().Rotate(mouseDelta.X, mouseDelta.Y);
     }
@@ -64,7 +64,6 @@ void Editor::Update()
     if (_activeViewport && 
         _activeViewport != &_vModel) {
         VertexSelection selection = _vertex->Select(_defaultMesh, _activeViewport->GetCamera().GetCameraSceneNode(), _activeViewport->GetViewportSegment());
-        std::cout << selection.isSelected << std::endl;
 
         if (selection.isSelected) {
             _vertex->AddHighlight(selection);
