@@ -19,7 +19,8 @@ Editor::Editor(Application& application)
       _vFront(_application, _cameraFront),
       _vRight(_application, _cameraRight),
       _activeViewport(nullptr),
-      _vertex(std::make_unique<Mode::Vertex>(_application))
+      _vertex(std::make_unique<Mode::Vertex>(_application)),
+      _model(std::make_unique<Model>(_application))
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
@@ -109,11 +110,21 @@ void Editor::_setupDefaultMesh()
 {
     _collisionManager = _application.smgr->getSceneCollisionManager();
 
-    // Scene Setup
-    _defaultMesh = _application.smgr->addCubeSceneNode(10.0f);
+    // Create the manual mesh via our static class
+    SMesh* cubeMesh = Mesh::CreateCube(8.0f);
+
+    // addMeshSceneNode takes an IMesh*, allowing for custom geometry
+    _defaultMesh = _application.smgr->addMeshSceneNode(cubeMesh);
+    
+    // The scene node increments the reference count, so we drop our local pointer
+    cubeMesh->drop();
+
     if (_defaultMesh) {
         _defaultMesh->setPosition(vector3df(0, 0, 0));
         _defaultMesh->setMaterialFlag(EMF_LIGHTING, false);
+        
+        // For a modelling app, wireframe is usually helpful for the default view
+        // _defaultMesh->setMaterialFlag(EMF_WIREFRAME, true);
     }
 
     _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
