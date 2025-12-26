@@ -27,15 +27,6 @@ namespace Mode {
                 ICameraSceneNode* camera,
                 rect<s32> viewportSegment
             );
-
-            // Getters
-            ISceneNode* GetHighlighted() const { return _highlighted; }
-            std::vector<ISceneNode*> GetSelected() const { return _selected; }
-
-            void AddHighlight(VertexSelection& selection);
-            void RemoveHighlight();
-            void AddToSelected(ISceneNode* selected);
-            void Clear();
         private:      
             static constexpr f32 DEFAULT_SELECT_THRESHOLD = 45.0f;
             static constexpr f32 POSITION_EPSILON = 0.001f;
@@ -52,7 +43,5 @@ namespace Mode {
             );
 
             Application& _application;
-            ISceneNode* _highlighted = nullptr;
-            std::vector<ISceneNode*> _selected = {};
     };
 };

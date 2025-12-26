@@ -46,7 +46,7 @@ void Editor::Draw()
 void Editor::Update()
 {
     _setViewports();
-    _vertex->RemoveHighlight();
+    _model->ClearHighlighted();
 
     // Get active viewport
     if (_vTop.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vTop; }
@@ -67,34 +67,24 @@ void Editor::Update()
         VertexSelection selection = _vertex->Select(_defaultMesh, _activeViewport->GetCamera().GetCameraSceneNode(), _activeViewport->GetViewportSegment());
 
         if (selection.isSelected) {
-            _vertex->AddHighlight(selection);
+            _model->SetHighlightedVertex(selection.worldPos);
         }
     }
 
     // Select vertex
     if (_activeViewport &&
         _activeViewport != &_vModel &&
-        _vertex->GetHighlighted() &&
+        _model->HasHighlightedVertex() &&
         _application.receiver.MouseState.LeftButtonDown) {
         
-        ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
-        selected->setPosition(_vertex->GetHighlighted()->getPosition());
-        selected->setMaterialFlag(EMF_LIGHTING, true);
-        selected->setMaterialFlag(EMF_ZBUFFER, false);
-        selected->setMaterialFlag(EMF_ZWRITE_ENABLE, false);  // Don't write to depth buffer
-
-        selected->getMaterial(0).EmissiveColor.set(255, 0, 255, 0); // Bright green
-
-        _vertex->AddToSelected(selected);
-
-        _vertex->RemoveHighlight();
+        _model->AddSelectedVertex();
     }
 
     // Move vertex
     if (_activeViewport &&
         _activeViewport != &_vModel &&
-        !_vertex->GetSelected().empty() &&
-        _vertex->GetSelected()[0] != nullptr &&
+        !_model->GetSelectedVertices().empty() &&
+        _model->GetSelectedVertices()[0] != nullptr &&
         _application.receiver.MouseState.LeftButtonDown
     ) {
       // Move selected vertices
@@ -103,31 +93,13 @@ void Editor::Update()
 
 void Editor::ClearVertices()
 {
-    _vertex->Clear();
+    _model->ClearAll();
 }
 
 void Editor::_setupDefaultMesh()
 {
-    _collisionManager = _application.smgr->getSceneCollisionManager();
-
-    // Create the manual mesh via our static class
-    SMesh* cubeMesh = Mesh::CreateCube(8.0f);
-
-    // addMeshSceneNode takes an IMesh*, allowing for custom geometry
-    _defaultMesh = _application.smgr->addMeshSceneNode(cubeMesh);
-    
-    // The scene node increments the reference count, so we drop our local pointer
-    cubeMesh->drop();
-
-    if (_defaultMesh) {
-        _defaultMesh->setPosition(vector3df(0, 0, 0));
-        _defaultMesh->setMaterialFlag(EMF_LIGHTING, false);
-        
-        // For a modelling app, wireframe is usually helpful for the default view
-        // _defaultMesh->setMaterialFlag(EMF_WIREFRAME, true);
-    }
-
-    _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
+    _model->GenerateDefault();
+    _defaultMesh = _model->GetMesh();
 }
 
 void Editor::_setViewports()

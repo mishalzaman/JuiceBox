@@ -7,8 +7,6 @@ Mode::Vertex::Vertex(Application& application)
 }
 
 Mode::Vertex::~Vertex() {
-    RemoveHighlight();
-    Clear();
 }
 
 VertexSelection Mode::Vertex::Select(
@@ -45,39 +43,6 @@ VertexSelection Mode::Vertex::Select(
     }
 
     return selection;
-}
-
-void Mode::Vertex::AddHighlight(VertexSelection &selection)
-{
-    RemoveHighlight(); // Remove existing highlight first to prevent memory leak
-    
-    _highlighted = _application.smgr->addCubeSceneNode(0.5f);
-    _highlighted->setPosition(selection.worldPos);
-    _highlighted->setMaterialFlag(EMF_LIGHTING, false);
-    _highlighted->setMaterialFlag(EMF_ZBUFFER, false);
-}
-
-void Mode::Vertex::RemoveHighlight()
-{
-    if (_highlighted) {
-        _highlighted->remove();
-        _highlighted = nullptr;
-    }
-}
-
-void Mode::Vertex::AddToSelected(ISceneNode* selected)
-{
-    _selected.push_back(selected);
-}
-
-void Mode::Vertex::Clear()
-{
-    for (ISceneNode* node : _selected) {
-        if (node) {
-            node->remove();
-        }
-    }
-    _selected.clear();
 }
 
 bool Mode::Vertex::_findClosestVertex(
