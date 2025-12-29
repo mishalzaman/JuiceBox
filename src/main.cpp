@@ -26,71 +26,6 @@ using namespace gui;
 #pragma comment(lib, "Irrlicht.lib")
 #endif
 
-// --- Structures and Helper Functions ---
-
-// struct VertexSelection {
-//     bool isSelected = false;
-//     u32 bufferIndex = 0;
-//     std::vector<u32> vertexIndices;
-//     vector3df worldPos;
-// };
-
-vector3df getDragPosition(ISceneCollisionManager* coll, ICameraSceneNode* camera, 
-                          position2di mousePos, vector3df originalPos, int viewportType,
-                          rect<s32> viewport)
-{
-    // ... (Keep existing implementation of getDragPosition)
-    plane3df dragPlane;
-
-    switch(viewportType) {
-        case 0:
-            dragPlane = plane3df(originalPos, vector3df(0, 1, 0));
-            break;
-        case 1:
-            dragPlane = plane3df(originalPos, vector3df(0, 0, 1));
-            break;
-        case 2:
-            dragPlane = plane3df(originalPos, vector3df(-1, 0, 0));
-            break;
-        default:
-            return originalPos;
-    }
-
-    position2di viewportMouse(
-        mousePos.X - viewport.UpperLeftCorner.X,
-        mousePos.Y - viewport.UpperLeftCorner.Y
-    );
-    
-    camera->updateAbsolutePosition();
-    
-    matrix4 viewMat = camera->getViewMatrix();
-    matrix4 projMat = camera->getProjectionMatrix();
-    matrix4 viewProj = projMat * viewMat;
-    matrix4 invViewProj;
-    viewProj.getInverse(invViewProj);
-    
-    f32 vpW = (f32)viewport.getWidth();
-    f32 vpH = (f32)viewport.getHeight();
-    f32 ndcX = (viewportMouse.X / vpW) * 2.0f - 1.0f;
-    f32 ndcY = 1.0f - (viewportMouse.Y / vpH) * 2.0f;
-    
-    vector3df nearPoint(ndcX, ndcY, 0.0f);
-    vector3df farPoint(ndcX, ndcY, 1.0f);
-    
-    invViewProj.transformVect(nearPoint);
-    invViewProj.transformVect(farPoint);
-    
-    vector3df rayDir = farPoint - nearPoint;
-    rayDir.normalize();
-
-    vector3df intersection;
-    if (dragPlane.getIntersectionWithLine(nearPoint, rayDir, intersection)) {
-        return intersection;
-    }
-
-    return originalPos;
-}
-
 // Define the bridge function AFTER the class definition
 void forwardEventToImGui(const SEvent& event) {
     // Safety check: Only forward events if the ImGui context has been created
@@ -121,6 +56,18 @@ int main() {
 
         if (app.receiver.IsKeyDown(KEY_KEY_A)) {
             editor.ClearVertices();
+        }
+
+        if (app.receiver.IsKeyDown(KEY_KEY_W)) {
+            editor.ChangeMode(EditorMode::VERTEX);
+        }
+        
+        if (app.receiver.IsKeyDown(KEY_KEY_W)) {
+            editor.ChangeMode(EditorMode::EDGE);
+        }
+
+        if (app.receiver.IsKeyDown(KEY_KEY_E)) {
+            editor.ChangeMode(EditorMode::FACE);
         }
 
         if (app.device->isWindowActive()) {

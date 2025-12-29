@@ -19,7 +19,8 @@ Editor::Editor(Application& application)
       _vFront(_application, _cameraFront, ViewportType::FRONT),
       _vRight(_application, _cameraRight, ViewportType::RIGHT),
       _activeViewport(nullptr),
-      _model(std::make_unique<Model>(_application))
+      _model(std::make_unique<Model>(_application)),
+      _mode(EditorMode::VERTEX)
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);

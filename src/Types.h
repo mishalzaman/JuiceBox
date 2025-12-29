@@ -2,6 +2,12 @@
 
 #include <irrlicht.h>
 
+enum EditorMode : int {
+    VERTEX = 0,
+    EDGE = 1,
+    FACE = 2
+};
+
 enum ViewportType : int {
     TOP = 0,
     BOTTOM = 1,

@@ -27,6 +27,7 @@ public:
     void Update();
 
     void ClearVertices();
+    void ChangeMode(EditorMode mode) { _mode = mode; }
     
 private:
     Application& _application;
@@ -60,4 +61,6 @@ private:
 
     // Vertex Selections
     std::unique_ptr<Model> _model;
+
+    EditorMode _mode;
 };
