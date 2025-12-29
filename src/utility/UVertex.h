@@ -15,18 +15,6 @@ struct VertexSelection {
     vector3df worldPos;
 };
 
-enum ViewportType : int {
-    TOP = 0,
-    FRONT = 1,
-    RIGHT = 2
-};
-
-static const vector3df ViewportCameraNormals[] = {
-    vector3df(0, 1, 0),  // TOP (index 0)
-    vector3df(0, 0, 1),  // FRONT (index 1)
-    vector3df(-1, 0, 0)  // RIGHT (index 2)
-};
-
 namespace UVertex {
     inline constexpr f32 DEFAULT_SELECT_THRESHOLD = 45.0f;
     inline constexpr f32 POSITION_EPSILON = 0.001f;
@@ -172,7 +160,7 @@ namespace UVertex {
         int ViewportType,  
         rect<s32> viewport
     ) {
-        int index = (ViewportType >= 0 && ViewportType <= 2) ? ViewportType : 0;
+        int index = (ViewportType >= 0 && ViewportType <= 5) ? ViewportType : 0;
         plane3df dragPlane(originalPos, ViewportCameraNormals[index]);
 
         position2di viewportMouse(

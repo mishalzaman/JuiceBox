@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Viewport.h"
 #include "Model.h"
+#include "Types.h"
 #include "utility/UVertex.h"
 #include "helpers/Mesh.h"
 
@@ -36,6 +37,7 @@ private:
 
     void _setupDefaultMesh();
     void _setViewports();
+    void _setActiveViewport();
 
     // Camera constants
     static const vector3df CAMERA_LOOKAT;

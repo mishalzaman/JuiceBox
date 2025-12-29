@@ -99,6 +99,7 @@ set(JUICEBOX_HEADERS
     src/Camera.h
     src/Model.h
     src/utility/UVertex.h
+    src/Types.h
 )
 
 add_executable(JuiceBox ${JUICEBOX_SOURCES})

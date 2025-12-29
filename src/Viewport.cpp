@@ -1,8 +1,9 @@
 #include "Viewport.h"
 
-Viewport::Viewport(Application& application, Camera& camera)
+Viewport::Viewport(Application& application, Camera& camera, ViewportType viewportType)
     :_application(application),
-    _camera(camera)
+    _camera(camera),
+    _viewPortType(viewportType)
 {
 }
 

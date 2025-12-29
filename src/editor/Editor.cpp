@@ -14,10 +14,10 @@ Editor::Editor(Application& application)
       _cameraModel(application, CAMERA_MODEL_POS, CAMERA_LOOKAT, false),
       _cameraFront(application, CAMERA_FRONT_POS, CAMERA_LOOKAT, true),
       _cameraRight(application, CAMERA_RIGHT_POS, CAMERA_LOOKAT, true),
-      _vTop(_application, _cameraTop),
-      _vModel(_application, _cameraModel),
-      _vFront(_application, _cameraFront),
-      _vRight(_application, _cameraRight),
+      _vTop(_application, _cameraTop, ViewportType::TOP),
+      _vModel(_application, _cameraModel, ViewportType::MODEL),
+      _vFront(_application, _cameraFront, ViewportType::FRONT),
+      _vRight(_application, _cameraRight, ViewportType::RIGHT),
       _activeViewport(nullptr),
       _model(std::make_unique<Model>(_application))
 {
@@ -45,29 +45,8 @@ void Editor::Draw()
 void Editor::Update()
 {
     _setViewports();
+    _setActiveViewport();
     _model->ClearHighlighted();
-
-    // 1. Determine Active Viewport AND its Type
-    ViewportType activeViewportType = ViewportType::TOP;
-    _activeViewport = nullptr;
-
-    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { 
-        _activeViewport = &_vTop; 
-        activeViewportType = ViewportType::TOP;
-    }
-    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { 
-        _activeViewport = &_vModel; 
-        // Model view typically doesn't support the same planar dragging, 
-        // but we handle the selection logic mostly the same.
-    }
-    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { 
-        _activeViewport = &_vFront; 
-        activeViewportType = ViewportType::FRONT;
-    }
-    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { 
-        _activeViewport = &_vRight; 
-        activeViewportType = ViewportType::RIGHT;
-    }
 
     // Model rotation
     if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
@@ -115,7 +94,7 @@ void Editor::Update()
                 _activeViewport->GetCamera().GetCameraSceneNode(),
                 _application.receiver.MouseState.Position,
                 pivotPos, 
-                activeViewportType,
+                _activeViewport->GetViewportType(),
                 _activeViewport->GetViewportSegment()
             );
 
@@ -126,7 +105,7 @@ void Editor::Update()
                 _activeViewport->GetCamera().GetCameraSceneNode(),
                 _application.receiver.MouseState.LastPosition,
                 pivotPos, 
-                activeViewportType,
+                _activeViewport->GetViewportType(),
                 _activeViewport->GetViewportSegment()
             );
 
@@ -174,3 +153,20 @@ void Editor::_setViewports()
     _vRight.UpdateViewport(midW, midH, w, h);
 }
 
+void Editor::_setActiveViewport()
+{
+    _activeViewport = nullptr;
+
+    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vTop; 
+    }
+    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vModel; 
+    }
+    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vFront; 
+    }
+    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vRight; 
+    }
+}
