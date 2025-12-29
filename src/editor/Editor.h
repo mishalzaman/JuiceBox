@@ -7,7 +7,7 @@
 #include "Camera.h"
 #include "Viewport.h"
 #include "Model.h"
-#include "mode/Vertex.h"
+#include "utility/UVertex.h"
 #include "helpers/Mesh.h"
 
 using namespace irr;
@@ -57,6 +57,5 @@ private:
     Viewport* _activeViewport;
 
     // Vertex Selections
-    std::unique_ptr<Mode::Vertex> _vertex;
     std::unique_ptr<Model> _model;
 };

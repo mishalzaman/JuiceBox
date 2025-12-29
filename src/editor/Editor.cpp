@@ -19,7 +19,6 @@ Editor::Editor(Application& application)
       _vFront(_application, _cameraFront),
       _vRight(_application, _cameraRight),
       _activeViewport(nullptr),
-      _vertex(std::make_unique<Mode::Vertex>(_application)),
       _model(std::make_unique<Model>(_application))
 {
     // Set the custom up vector for the top camera
@@ -48,12 +47,27 @@ void Editor::Update()
     _setViewports();
     _model->ClearHighlighted();
 
-    // Get active viewport
-    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vTop; }
-    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vModel; }
-    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vFront; }
-    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vRight; }
-    else { _activeViewport = nullptr; }
+    // 1. Determine Active Viewport AND its Type
+    ViewportType activeViewportType = ViewportType::TOP;
+    _activeViewport = nullptr;
+
+    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vTop; 
+        activeViewportType = ViewportType::TOP;
+    }
+    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vModel; 
+        // Model view typically doesn't support the same planar dragging, 
+        // but we handle the selection logic mostly the same.
+    }
+    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vFront; 
+        activeViewportType = ViewportType::FRONT;
+    }
+    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vRight; 
+        activeViewportType = ViewportType::RIGHT;
+    }
 
     // Model rotation
     if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
@@ -62,9 +76,13 @@ void Editor::Update()
     }
 
     // Highlight vertex
-    if (_activeViewport && 
-        _activeViewport != &_vModel) {
-        VertexSelection selection = _vertex->Select(_defaultMesh, _activeViewport->GetCamera().GetCameraSceneNode(), _activeViewport->GetViewportSegment());
+    if (_activeViewport && _activeViewport != &_vModel) {
+        VertexSelection selection = UVertex::Select(
+            _defaultMesh,
+            _activeViewport->GetCamera().GetCameraSceneNode(),
+            _activeViewport->GetViewportSegment(),
+            _application.receiver.MouseState.Position
+        );
 
         if (selection.isSelected) {
             _model->SetHighlightedVertex(selection.worldPos);
@@ -80,14 +98,54 @@ void Editor::Update()
         _model->AddSelectedVertex();
     }
 
-    // Move vertex
-    if (_activeViewport &&
+    // Move vertex (UPDATED LOGIC)
+    if (_activeViewport &&          
         _activeViewport != &_vModel &&
         !_model->GetSelectedVertices().empty() &&
-        _model->GetSelectedVertices()[0] != nullptr &&
         _application.receiver.MouseState.LeftButtonDown
     ) {
-      // Move selected vertices
+        ISceneNode* pivotNode = _model->GetSelectedVertices()[0];
+        
+        if (pivotNode) {
+            vector3df pivotPos = pivotNode->getPosition();
+
+            // A. Calculate World Position for CURRENT mouse frame
+            vector3df currentWorldPos = UVertex::Move(
+                _collisionManager,
+                _activeViewport->GetCamera().GetCameraSceneNode(),
+                _application.receiver.MouseState.Position,
+                pivotPos, 
+                activeViewportType,
+                _activeViewport->GetViewportSegment()
+            );
+
+            // B. Calculate World Position for PREVIOUS mouse frame
+            // We use the same pivotPos to ensure we are projecting onto the same depth plane
+            vector3df lastWorldPos = UVertex::Move(
+                _collisionManager,
+                _activeViewport->GetCamera().GetCameraSceneNode(),
+                _application.receiver.MouseState.LastPosition,
+                pivotPos, 
+                activeViewportType,
+                _activeViewport->GetViewportSegment()
+            );
+
+            // C. The difference is the actual 3D movement vector for this frame
+            vector3df moveDelta = currentWorldPos - lastWorldPos;
+
+            // Only update if there is actual movement
+            if (moveDelta.getLengthSQ() > 0.000001f) {
+                for (ISceneNode* selectedNode : _model->GetSelectedVertices()) {
+                    if (selectedNode) {
+                        vector3df oldPos = selectedNode->getPosition();
+                        vector3df newPos = oldPos + moveDelta;
+
+                        _model->UpdateMesh(oldPos, newPos);
+                        selectedNode->setPosition(newPos);
+                    }
+                }
+            }
+        }
     }
 }
 

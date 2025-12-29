@@ -16,6 +16,7 @@ class Model {
         ~Model();
         IMeshSceneNode* GetMesh() { return _mesh; }
         void GenerateDefault();
+        void UpdateMesh(vector3df vertexCurrent, vector3df vertexNew);
 
         // Vertices
         void SetHighlightedVertex(vector3df position);

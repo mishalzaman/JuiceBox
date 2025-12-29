@@ -85,7 +85,6 @@ set(JUICEBOX_SOURCES
     src/painter/Painter.cpp
     src/Viewport.cpp
     src/Camera.cpp
-    src/mode/Vertex.cpp
     src/Model.cpp
 )
 set(JUICEBOX_HEADERS 
@@ -98,8 +97,8 @@ set(JUICEBOX_HEADERS
     src/helpers/Mesh.h
     src/Viewport.h
     src/Camera.h
-    src/mode/Vertex.h
     src/Model.h
+    src/utility/UVertex.h
 )
 
 add_executable(JuiceBox ${JUICEBOX_SOURCES})

@@ -28,6 +28,50 @@ void Model::GenerateDefault()
     _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
 }
 
+void Model::UpdateMesh(vector3df vertexCurrent, vector3df vertexNew)
+{
+    if (!_mesh) 
+        return;
+
+    IMesh* mesh = _mesh->getMesh();
+    u32 bufferCount = mesh->getMeshBufferCount();
+
+    // Iterate through all mesh buffers (a mesh can have multiple)
+    for (u32 i = 0; i < bufferCount; ++i) 
+    {
+        IMeshBuffer* mb = mesh->getMeshBuffer(i);
+        
+        // Ensure we are working with standard vertices
+        if (mb->getVertexType() == EVT_STANDARD) 
+        {
+            S3DVertex* vertices = (S3DVertex*)mb->getVertices();
+            u32 vertexCount = mb->getVertexCount();
+
+            for (u32 j = 0; j < vertexCount; ++j) 
+            {
+                // Use an epsilon check for floating point comparison
+                if (vertices[j].Pos.equals(vertexCurrent, 0.001f)) 
+                {
+                    vertices[j].Pos = vertexNew;
+                }
+            }
+        }
+        // Handle other vertex types if necessary (e.g., 2TCoords or Tangents)
+        else if (mb->getVertexType() == EVT_2TCOORDS)
+        {
+            S3DVertex2TCoords* vertices = (S3DVertex2TCoords*)mb->getVertices();
+            for (u32 j = 0; j < mb->getVertexCount(); ++j)
+            {
+                if (vertices[j].Pos.equals(vertexCurrent, 0.001f))
+                    vertices[j].Pos = vertexNew;
+            }
+        }
+    }
+
+    // CRITICAL: Inform the hardware that the vertex data has changed
+    _mesh->getMesh()->setDirty(EBT_VERTEX);
+}
+
 void Model::SetHighlightedVertex(vector3df position)
 {
     ClearHighlighted(); // Remove existing highlight first to prevent memory leak
