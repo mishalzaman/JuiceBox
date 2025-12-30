@@ -1,6 +1,7 @@
 #pragma once
 
 #include <irrlicht.h>
+#include <vector>
 
 enum EditorMode : int {
     VERTEX = 0,
@@ -26,4 +27,11 @@ static const vector3df ViewportCameraNormals[] = {
     vector3df(-1, 0, 0),  // RIGHT (index 2)
     vector3df(1, 0, 0),  // LEFT (index 2)
     vector3df(1, 1, 1)  // MODEL (index 2)
+};
+
+struct VertexSelection {
+    bool isSelected = false;
+    u32 bufferIndex = 0;
+    std::vector<u32> vertexIndices;
+    vector3df worldPos;
 };

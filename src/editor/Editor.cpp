@@ -56,7 +56,9 @@ void Editor::Update()
     }
 
     // Highlight vertex
-    if (_activeViewport && _activeViewport != &_vModel) {
+    if (_activeViewport && 
+        _activeViewport != &_vModel &&
+        !_application.receiver.MouseState.IsDragging) {
         VertexSelection selection = UVertex::Select(
             _defaultMesh,
             _activeViewport->GetCamera().GetCameraSceneNode(),

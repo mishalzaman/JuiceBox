@@ -8,13 +8,6 @@ using namespace irr;
 using namespace core;
 using namespace video;
 
-struct VertexSelection {
-    bool isSelected = false;
-    u32 bufferIndex = 0;
-    std::vector<u32> vertexIndices;
-    vector3df worldPos;
-};
-
 namespace UVertex {
     inline constexpr f32 DEFAULT_SELECT_THRESHOLD = 45.0f;
     inline constexpr f32 POSITION_EPSILON = 0.001f;
