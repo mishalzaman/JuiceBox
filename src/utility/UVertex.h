@@ -119,7 +119,8 @@ namespace UVertex {
         IMeshSceneNode* mesh,
         ICameraSceneNode* camera,
         rect<s32> viewportSegment,
-        position2di mousePos
+        position2di mousePos,
+        EditorMode mode
     ) {
         VertexSelection selection;
         

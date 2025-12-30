@@ -61,7 +61,8 @@ void Editor::Update()
             _defaultMesh,
             _activeViewport->GetCamera().GetCameraSceneNode(),
             _activeViewport->GetViewportSegment(),
-            _application.receiver.MouseState.Position
+            _application.receiver.MouseState.Position,
+            _mode
         );
 
         if (selection.isSelected) {
