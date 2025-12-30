@@ -20,7 +20,7 @@ Editor::Editor(Application& application)
       _vRight(_application, _cameraRight, ViewportType::RIGHT),
       _activeViewport(nullptr),
       _model(std::make_unique<Model>(_application)),
-      _mode(EditorMode::VERTEX)
+      _editorMode(EditorMode::VERTEX)
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
@@ -49,82 +49,77 @@ void Editor::Update()
     _setActiveViewport();
     _model->ClearHighlighted();
 
-    // Model rotation
+    // Model rotation (unchanged)
     if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
         position2di mouseDelta = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
         _activeViewport->GetCamera().Rotate(mouseDelta.X, mouseDelta.Y);
     }
 
-    // Highlight vertex
-    if (_activeViewport && 
-        _activeViewport != &_vModel &&
-        !_application.receiver.MouseState.IsDragging) {
-        VertexSelection selection = UVertex::Select(
-            _defaultMesh,
-            _activeViewport->GetCamera().GetCameraSceneNode(),
-            _activeViewport->GetViewportSegment(),
-            _application.receiver.MouseState.Position,
-            _mode
-        );
-
-        if (selection.isSelected) {
-            _model->SetHighlightedVertex(selection.worldPos);
-        }
-    }
-
-    // Select vertex
-    if (_activeViewport &&
-        _activeViewport != &_vModel &&
-        _model->HasHighlightedVertex() &&
-        _application.receiver.MouseState.LeftButtonDown) {
+    // Only process in orthographic viewports
+    if (_activeViewport && _activeViewport != &_vModel) {
         
-        _model->AddSelectedVertex();
-    }
-
-    // Move vertex (UPDATED LOGIC)
-    if (_activeViewport &&          
-        _activeViewport != &_vModel &&
-        !_model->GetSelectedVertices().empty() &&
-        _application.receiver.MouseState.LeftButtonDown
-    ) {
-        ISceneNode* pivotNode = _model->GetSelectedVertices()[0];
-        
-        if (pivotNode) {
-            vector3df pivotPos = pivotNode->getPosition();
-
-            // A. Calculate World Position for CURRENT mouse frame
-            vector3df currentWorldPos = UVertex::Move(
-                _collisionManager,
+        // Highlight vertex (only when not dragging)
+        if (!_application.receiver.MouseState.IsDragging) {
+            VertexSelection selection = UVertex::Select(
+                _defaultMesh,
                 _activeViewport->GetCamera().GetCameraSceneNode(),
+                _activeViewport->GetViewportSegment(),
                 _application.receiver.MouseState.Position,
-                pivotPos, 
-                _activeViewport->GetViewportType(),
-                _activeViewport->GetViewportSegment()
+                _editorMode
             );
 
-            // B. Calculate World Position for PREVIOUS mouse frame
-            // We use the same pivotPos to ensure we are projecting onto the same depth plane
-            vector3df lastWorldPos = UVertex::Move(
-                _collisionManager,
-                _activeViewport->GetCamera().GetCameraSceneNode(),
-                _application.receiver.MouseState.LastPosition,
-                pivotPos, 
-                _activeViewport->GetViewportType(),
-                _activeViewport->GetViewportSegment()
-            );
+            if (selection.isSelected) {
+                _model->SetHighlightedVertex(selection.worldPos);
+            }
+        }
 
-            // C. The difference is the actual 3D movement vector for this frame
-            vector3df moveDelta = currentWorldPos - lastWorldPos;
+        // Handle vertex selection (on click, not continuous)
+        if (_model->HasHighlightedVertex() && 
+            _application.receiver.MouseState.LeftButtonDown &&
+            !_application.receiver.MouseState.WasLeftButtonDown) {  // Only on initial press
+            
+            _model->AddSelectedVertex();
+        }
 
-            // Only update if there is actual movement
-            if (moveDelta.getLengthSQ() > 0.000001f) {
-                for (ISceneNode* selectedNode : _model->GetSelectedVertices()) {
-                    if (selectedNode) {
-                        vector3df oldPos = selectedNode->getPosition();
-                        vector3df newPos = oldPos + moveDelta;
+        // Move selected vertices (only while dragging)
+        if (!_model->GetSelectedVertices().empty() &&
+            _application.receiver.MouseState.IsDragging &&
+            _application.receiver.MouseState.LeftButtonDown) {
+            
+            ISceneNode* pivotNode = _model->GetSelectedVertices()[0];
+            
+            if (pivotNode) {
+                vector3df pivotPos = pivotNode->getPosition();
 
-                        _model->UpdateMesh(oldPos, newPos);
-                        selectedNode->setPosition(newPos);
+                vector3df currentWorldPos = UVertex::Move(
+                    _collisionManager,
+                    _activeViewport->GetCamera().GetCameraSceneNode(),
+                    _application.receiver.MouseState.Position,
+                    pivotPos, 
+                    _activeViewport->GetViewportType(),
+                    _activeViewport->GetViewportSegment()
+                );
+
+                vector3df lastWorldPos = UVertex::Move(
+                    _collisionManager,
+                    _activeViewport->GetCamera().GetCameraSceneNode(),
+                    _application.receiver.MouseState.LastPosition,
+                    pivotPos, 
+                    _activeViewport->GetViewportType(),
+                    _activeViewport->GetViewportSegment()
+                );
+
+                vector3df moveDelta = currentWorldPos - lastWorldPos;
+
+                if (moveDelta.getLengthSQ() > 0.000001f) {
+                    for (ISceneNode* selectedNode : _model->GetSelectedVertices()) {
+                        if (selectedNode) {
+                            vector3df oldPos = selectedNode->getPosition();
+                            vector3df newPos = oldPos + moveDelta;
+
+                            _model->UpdateMesh(oldPos, newPos);
+                            selectedNode->setPosition(newPos);
+                        }
                     }
                 }
             }

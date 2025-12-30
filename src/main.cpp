@@ -88,6 +88,7 @@ int main() {
             editor.Draw();
             app.driver->endScene();
             app.receiver.UpdateLastPosition();
+            app.receiver.EndFrame();
         }
     }
 
