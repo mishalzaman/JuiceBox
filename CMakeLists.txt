@@ -120,3 +120,13 @@ target_include_directories(JuiceBox PRIVATE
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
 )
+
+# ==============================================================================
+# 5. Copy Assets Folder to Build Directory
+# ==============================================================================
+add_custom_command(TARGET JuiceBox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:JuiceBox>/assets
+    COMMENT "Copying assets folder to build directory"
+)

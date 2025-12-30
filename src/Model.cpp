@@ -23,6 +23,12 @@ void Model::GenerateDefault()
     if (_mesh) {
         _mesh->setPosition(vector3df(0, 0, 0));
         _mesh->setMaterialFlag(EMF_LIGHTING, false);
+        
+        // Load and apply the crate texture
+        ITexture* crateTexture = _application.driver->getTexture("assets/crate.png");
+        if (crateTexture) {
+            _mesh->setMaterialTexture(0, crateTexture);
+        }
     }
 
     _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);

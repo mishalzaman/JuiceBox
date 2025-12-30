@@ -16,23 +16,52 @@ namespace Mesh {
         f32 s = size / 2.0f;
         SColor white(255, 255, 255, 255);
 
-        // 8 Shared Vertices
-        buffer->Vertices.push_back(S3DVertex(-s,-s, s, -1,-1, 1, white, 0, 1)); // 0
-        buffer->Vertices.push_back(S3DVertex( s,-s, s,  1,-1, 1, white, 1, 1)); // 1
-        buffer->Vertices.push_back(S3DVertex( s, s, s,  1, 1, 1, white, 1, 0)); // 2
-        buffer->Vertices.push_back(S3DVertex(-s, s, s, -1, 1, 1, white, 0, 0)); // 3
-        buffer->Vertices.push_back(S3DVertex( s,-s,-s,  1,-1,-1, white, 0, 1)); // 4
-        buffer->Vertices.push_back(S3DVertex(-s,-s,-s, -1,-1,-1, white, 1, 1)); // 5
-        buffer->Vertices.push_back(S3DVertex(-s, s,-s, -1, 1,-1, white, 1, 0)); // 6
-        buffer->Vertices.push_back(S3DVertex( s, s,-s,  1, 1,-1, white, 0, 0)); // 7
+        // 24 Vertices (4 per face) - each face needs unique vertices for proper UV mapping
+        
+        // Front face (Z+)
+        buffer->Vertices.push_back(S3DVertex(-s, -s, s, 0, 0, 1, white, 0, 1)); // 0
+        buffer->Vertices.push_back(S3DVertex( s, -s, s, 0, 0, 1, white, 1, 1)); // 1
+        buffer->Vertices.push_back(S3DVertex( s,  s, s, 0, 0, 1, white, 1, 0)); // 2
+        buffer->Vertices.push_back(S3DVertex(-s,  s, s, 0, 0, 1, white, 0, 0)); // 3
+        
+        // Back face (Z-)
+        buffer->Vertices.push_back(S3DVertex( s, -s, -s, 0, 0, -1, white, 0, 1)); // 4
+        buffer->Vertices.push_back(S3DVertex(-s, -s, -s, 0, 0, -1, white, 1, 1)); // 5
+        buffer->Vertices.push_back(S3DVertex(-s,  s, -s, 0, 0, -1, white, 1, 0)); // 6
+        buffer->Vertices.push_back(S3DVertex( s,  s, -s, 0, 0, -1, white, 0, 0)); // 7
+        
+        // Top face (Y+)
+        buffer->Vertices.push_back(S3DVertex(-s, s,  s, 0, 1, 0, white, 0, 1)); // 8
+        buffer->Vertices.push_back(S3DVertex( s, s,  s, 0, 1, 0, white, 1, 1)); // 9
+        buffer->Vertices.push_back(S3DVertex( s, s, -s, 0, 1, 0, white, 1, 0)); // 10
+        buffer->Vertices.push_back(S3DVertex(-s, s, -s, 0, 1, 0, white, 0, 0)); // 11
+        
+        // Bottom face (Y-)
+        buffer->Vertices.push_back(S3DVertex(-s, -s, -s, 0, -1, 0, white, 0, 1)); // 12
+        buffer->Vertices.push_back(S3DVertex( s, -s, -s, 0, -1, 0, white, 1, 1)); // 13
+        buffer->Vertices.push_back(S3DVertex( s, -s,  s, 0, -1, 0, white, 1, 0)); // 14
+        buffer->Vertices.push_back(S3DVertex(-s, -s,  s, 0, -1, 0, white, 0, 0)); // 15
+        
+        // Right face (X+)
+        buffer->Vertices.push_back(S3DVertex(s, -s,  s, 1, 0, 0, white, 0, 1)); // 16
+        buffer->Vertices.push_back(S3DVertex(s, -s, -s, 1, 0, 0, white, 1, 1)); // 17
+        buffer->Vertices.push_back(S3DVertex(s,  s, -s, 1, 0, 0, white, 1, 0)); // 18
+        buffer->Vertices.push_back(S3DVertex(s,  s,  s, 1, 0, 0, white, 0, 0)); // 19
+        
+        // Left face (X-)
+        buffer->Vertices.push_back(S3DVertex(-s, -s, -s, -1, 0, 0, white, 0, 1)); // 20
+        buffer->Vertices.push_back(S3DVertex(-s, -s,  s, -1, 0, 0, white, 1, 1)); // 21
+        buffer->Vertices.push_back(S3DVertex(-s,  s,  s, -1, 0, 0, white, 1, 0)); // 22
+        buffer->Vertices.push_back(S3DVertex(-s,  s, -s, -1, 0, 0, white, 0, 0)); // 23
 
+        // Indices for all 6 faces (2 triangles per face)
         u16 u_indices[] = {
-            0,1,2, 0,2,3, // Front
-            1,4,7, 1,7,2, // Right
-            4,5,6, 4,6,7, // Back
-            5,0,3, 5,3,6, // Left
-            3,2,7, 3,7,6, // Top
-            0,5,4, 0,4,1  // Bottom
+            0,1,2, 0,2,3,       // Front
+            4,5,6, 4,6,7,       // Back
+            8,9,10, 8,10,11,    // Top
+            12,13,14, 12,14,15, // Bottom
+            16,17,18, 16,18,19, // Right
+            20,21,22, 20,22,23  // Left
         };
 
         for (u32 i = 0; i < 36; ++i) buffer->Indices.push_back(u_indices[i]);
