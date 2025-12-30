@@ -6,7 +6,10 @@
 #include "Application.h"
 #include "Camera.h"
 #include "Viewport.h"
-#include "mode/Vertex.h"
+#include "Model.h"
+#include "Types.h"
+#include "utility/UVertex.h"
+#include "helpers/Mesh.h"
 
 using namespace irr;
 using namespace core;
@@ -24,6 +27,7 @@ public:
     void Update();
 
     void ClearVertices();
+    void ChangeMode(EditorMode mode) { _mode = mode; }
     
 private:
     Application& _application;
@@ -34,6 +38,7 @@ private:
 
     void _setupDefaultMesh();
     void _setViewports();
+    void _setActiveViewport();
 
     // Camera constants
     static const vector3df CAMERA_LOOKAT;
@@ -55,5 +60,7 @@ private:
     Viewport* _activeViewport;
 
     // Vertex Selections
-    std::unique_ptr<Mode::Vertex> _vertex;
+    std::unique_ptr<Model> _model;
+
+    EditorMode _mode;
 };

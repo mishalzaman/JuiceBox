@@ -2,10 +2,11 @@
 
 #include "Application.h"
 #include "Camera.h"
+#include "Types.h"
 
 class Viewport {
     public:
-        Viewport(Application& application, Camera& camera);
+        Viewport(Application& application, Camera& camera, ViewportType viewportType);
         ~Viewport();
 
         void UpdateViewport(s32 top_left_x, s32 top_left_y, s32 bottom_right_x, s32 bottom_right_y);
@@ -14,10 +15,12 @@ class Viewport {
         bool IsActive(position2di mousePosition);
         Camera& GetCamera() { return _camera; }
         rect<s32> GetViewportSegment() { return _viewportSegment; }
+        ViewportType GetViewportType() { return _viewPortType; }
 
     private:
         Application& _application;
         Camera& _camera;
 
         rect<s32> _viewportSegment;
+        ViewportType _viewPortType;
 };

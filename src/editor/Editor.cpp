@@ -14,12 +14,13 @@ Editor::Editor(Application& application)
       _cameraModel(application, CAMERA_MODEL_POS, CAMERA_LOOKAT, false),
       _cameraFront(application, CAMERA_FRONT_POS, CAMERA_LOOKAT, true),
       _cameraRight(application, CAMERA_RIGHT_POS, CAMERA_LOOKAT, true),
-      _vTop(_application, _cameraTop),
-      _vModel(_application, _cameraModel),
-      _vFront(_application, _cameraFront),
-      _vRight(_application, _cameraRight),
+      _vTop(_application, _cameraTop, ViewportType::TOP),
+      _vModel(_application, _cameraModel, ViewportType::MODEL),
+      _vFront(_application, _cameraFront, ViewportType::FRONT),
+      _vRight(_application, _cameraRight, ViewportType::RIGHT),
       _activeViewport(nullptr),
-      _vertex(std::make_unique<Mode::Vertex>(_application))
+      _model(std::make_unique<Model>(_application)),
+      _mode(EditorMode::VERTEX)
 {
     // Set the custom up vector for the top camera
     _cameraTop.SetUpVector(CAMERA_TOP_UP);
@@ -45,14 +46,8 @@ void Editor::Draw()
 void Editor::Update()
 {
     _setViewports();
-    _vertex->RemoveHighlight();
-
-    // Get active viewport
-    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vTop; }
-    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vModel; }
-    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vFront; }
-    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { _activeViewport = &_vRight; }
-    else { _activeViewport = nullptr; }
+    _setActiveViewport();
+    _model->ClearHighlighted();
 
     // Model rotation
     if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
@@ -61,62 +56,89 @@ void Editor::Update()
     }
 
     // Highlight vertex
-    if (_activeViewport && 
-        _activeViewport != &_vModel) {
-        VertexSelection selection = _vertex->Select(_defaultMesh, _activeViewport->GetCamera().GetCameraSceneNode(), _activeViewport->GetViewportSegment());
+    if (_activeViewport && _activeViewport != &_vModel) {
+        VertexSelection selection = UVertex::Select(
+            _defaultMesh,
+            _activeViewport->GetCamera().GetCameraSceneNode(),
+            _activeViewport->GetViewportSegment(),
+            _application.receiver.MouseState.Position,
+            _mode
+        );
 
         if (selection.isSelected) {
-            _vertex->AddHighlight(selection);
+            _model->SetHighlightedVertex(selection.worldPos);
         }
     }
 
     // Select vertex
     if (_activeViewport &&
         _activeViewport != &_vModel &&
-        _vertex->GetHighlighted() &&
+        _model->HasHighlightedVertex() &&
         _application.receiver.MouseState.LeftButtonDown) {
         
-        ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
-        selected->setPosition(_vertex->GetHighlighted()->getPosition());
-        selected->setMaterialFlag(EMF_LIGHTING, true);
-        selected->setMaterialFlag(EMF_ZBUFFER, false);
-        selected->setMaterialFlag(EMF_ZWRITE_ENABLE, false);  // Don't write to depth buffer
-
-        selected->getMaterial(0).EmissiveColor.set(255, 0, 255, 0); // Bright green
-
-        _vertex->AddToSelected(selected);
-
-        _vertex->RemoveHighlight();
+        _model->AddSelectedVertex();
     }
 
-    // Move vertex
-    if (_activeViewport &&
+    // Move vertex (UPDATED LOGIC)
+    if (_activeViewport &&          
         _activeViewport != &_vModel &&
-        !_vertex->GetSelected().empty() &&
-        _vertex->GetSelected()[0] != nullptr &&
+        !_model->GetSelectedVertices().empty() &&
         _application.receiver.MouseState.LeftButtonDown
     ) {
-      // Move selected vertices
+        ISceneNode* pivotNode = _model->GetSelectedVertices()[0];
+        
+        if (pivotNode) {
+            vector3df pivotPos = pivotNode->getPosition();
+
+            // A. Calculate World Position for CURRENT mouse frame
+            vector3df currentWorldPos = UVertex::Move(
+                _collisionManager,
+                _activeViewport->GetCamera().GetCameraSceneNode(),
+                _application.receiver.MouseState.Position,
+                pivotPos, 
+                _activeViewport->GetViewportType(),
+                _activeViewport->GetViewportSegment()
+            );
+
+            // B. Calculate World Position for PREVIOUS mouse frame
+            // We use the same pivotPos to ensure we are projecting onto the same depth plane
+            vector3df lastWorldPos = UVertex::Move(
+                _collisionManager,
+                _activeViewport->GetCamera().GetCameraSceneNode(),
+                _application.receiver.MouseState.LastPosition,
+                pivotPos, 
+                _activeViewport->GetViewportType(),
+                _activeViewport->GetViewportSegment()
+            );
+
+            // C. The difference is the actual 3D movement vector for this frame
+            vector3df moveDelta = currentWorldPos - lastWorldPos;
+
+            // Only update if there is actual movement
+            if (moveDelta.getLengthSQ() > 0.000001f) {
+                for (ISceneNode* selectedNode : _model->GetSelectedVertices()) {
+                    if (selectedNode) {
+                        vector3df oldPos = selectedNode->getPosition();
+                        vector3df newPos = oldPos + moveDelta;
+
+                        _model->UpdateMesh(oldPos, newPos);
+                        selectedNode->setPosition(newPos);
+                    }
+                }
+            }
+        }
     }
 }
 
 void Editor::ClearVertices()
 {
-    _vertex->Clear();
+    _model->ClearAll();
 }
 
 void Editor::_setupDefaultMesh()
 {
-    _collisionManager = _application.smgr->getSceneCollisionManager();
-
-    // Scene Setup
-    _defaultMesh = _application.smgr->addCubeSceneNode(10.0f);
-    if (_defaultMesh) {
-        _defaultMesh->setPosition(vector3df(0, 0, 0));
-        _defaultMesh->setMaterialFlag(EMF_LIGHTING, false);
-    }
-
-    _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
+    _model->GenerateDefault();
+    _defaultMesh = _model->GetMesh();
 }
 
 void Editor::_setViewports()
@@ -133,3 +155,20 @@ void Editor::_setViewports()
     _vRight.UpdateViewport(midW, midH, w, h);
 }
 
+void Editor::_setActiveViewport()
+{
+    _activeViewport = nullptr;
+
+    if (_vTop.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vTop; 
+    }
+    else if (_vModel.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vModel; 
+    }
+    else if (_vFront.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vFront; 
+    }
+    else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { 
+        _activeViewport = &_vRight; 
+    }
+}
