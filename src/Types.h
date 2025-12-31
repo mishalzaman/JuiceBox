@@ -35,3 +35,23 @@ struct VertexSelection {
     std::vector<u32> vertexIndices;
     vector3df worldPos;
 };
+
+struct EdgeSelection {
+    bool isSelected = false;
+    u32 bufferIndex = 0;
+    u32 vertexIndex1 = 0;
+    u32 vertexIndex2 = 0;
+    vector3df worldPos1;
+    vector3df worldPos2;
+};
+
+struct FaceSelection {
+    bool isSelected = false;
+    u32 bufferIndex = 0;
+    u32 vertexIndex1 = 0;
+    u32 vertexIndex2 = 0;
+    u32 vertexIndex3 = 0;
+    vector3df worldPos1;
+    vector3df worldPos2;
+    vector3df worldPos3;
+};
