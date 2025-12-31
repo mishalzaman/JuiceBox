@@ -61,14 +61,44 @@ void Viewport::_renderToTexture(IMeshSceneNode* mesh, bool wireframe)
     _application.smgr->setActiveCamera(_camera.GetCameraSceneNode());
     
     if (mesh) {
-        mesh->setMaterialFlag(EMF_WIREFRAME, wireframe);
-        mesh->setMaterialFlag(EMF_LIGHTING, !wireframe);
+        if (wireframe) {
+            // Store original texture to restore later
+            ITexture* originalTexture = mesh->getMaterial(0).getTexture(0);
+            
+            // Disable texture for wireframe
+            mesh->setMaterialTexture(0, nullptr);
+            
+            // Set colors to white
+            mesh->getMaterial(0).DiffuseColor.set(255, 255, 255, 255);
+            mesh->getMaterial(0).AmbientColor.set(255, 255, 255, 255);
+            mesh->getMaterial(0).EmissiveColor.set(255, 255, 255, 255);
+            
+            mesh->setMaterialFlag(EMF_WIREFRAME, true);
+            mesh->setMaterialFlag(EMF_LIGHTING, false);
+            
+            // Render
+            _application.smgr->drawAll();
+            
+            // Restore texture and original state
+            mesh->setMaterialTexture(0, originalTexture);
+            mesh->setMaterialFlag(EMF_WIREFRAME, false);
+        } else {
+            mesh->setMaterialFlag(EMF_WIREFRAME, false);
+            mesh->setMaterialFlag(EMF_LIGHTING, false);
+            mesh->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+            mesh->setMaterialFlag(EMF_BILINEAR_FILTER, false);
+            mesh->setMaterialFlag(EMF_TRILINEAR_FILTER, false);
+            mesh->setMaterialFlag(EMF_ANISOTROPIC_FILTER, false);
+            
+            // Render normally
+            _application.smgr->drawAll();
+        }
+        
         mesh->setMaterialFlag(EMF_BILINEAR_FILTER, false);
         mesh->setMaterialFlag(EMF_ANISOTROPIC_FILTER, false);
+    } else {
+        _application.smgr->drawAll();
     }
-    
-    // Render the scene
-    _application.smgr->drawAll();
     
     // Reset render target to screen
     _application.driver->setRenderTarget(0, false, false);

@@ -31,7 +31,7 @@ void Model::GenerateDefault()
         }
     }
 
-    _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
+    _application.smgr->addLightSceneNode(0, vector3df(0, 10, -10), SColorf(1.0f, 1.0f, 1.0f), 40.0f);
 }
 
 void Model::UpdateMesh(vector3df vertexCurrent, vector3df vertexNew)
