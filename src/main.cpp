@@ -58,7 +58,7 @@ int main() {
             editor.ClearVertices();
         }
 
-        if (app.receiver.IsKeyDown(KEY_KEY_W)) {
+        if (app.receiver.IsKeyDown(KEY_KEY_Q)) {
             editor.ChangeMode(EditorMode::VERTEX);
         }
         

@@ -228,7 +228,6 @@ namespace UVertex {
 
         camera->updateAbsolutePosition();
         
-        // Create ray from camera through mouse position
         ISceneCollisionManager* collMan = node->getSceneManager()->getSceneCollisionManager();
         
         position2di viewportMouse(
@@ -251,13 +250,32 @@ namespace UVertex {
         if (hitNode == node) {
             IMesh* mesh = node->getMesh();
             matrix4 world = node->getAbsoluteTransformation();
+
+            // Transform hit triangle to local space for comparison
             matrix4 invWorld;
             world.getInverse(invWorld);
+            
+            triangle3df localHitTriangle = hitTriangle;
+            invWorld.transformVect(localHitTriangle.pointA);
+            invWorld.transformVect(localHitTriangle.pointB);
+            invWorld.transformVect(localHitTriangle.pointC);
 
-            vector3df localHitPos = hitPos;
-            invWorld.transformVect(localHitPos);
+            const f32 epsilon = 0.001f;
 
-            // Find the triangle that was hit
+            // Helper to check if three vertices match (in any order)
+            auto trianglesMatch = [epsilon](
+                const vector3df& v1, const vector3df& v2, const vector3df& v3,
+                const vector3df& t1, const vector3df& t2, const vector3df& t3
+            ) -> bool {
+                // Check if all vertices of the mesh triangle match vertices in the hit triangle
+                int matchCount = 0;
+                if (v1.equals(t1, epsilon) || v1.equals(t2, epsilon) || v1.equals(t3, epsilon)) matchCount++;
+                if (v2.equals(t1, epsilon) || v2.equals(t2, epsilon) || v2.equals(t3, epsilon)) matchCount++;
+                if (v3.equals(t1, epsilon) || v3.equals(t2, epsilon) || v3.equals(t3, epsilon)) matchCount++;
+                return matchCount == 3;
+            };
+
+            // Find matching triangle in mesh
             for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
                 IMeshBuffer* mb = mesh->getMeshBuffer(b);
                 
@@ -278,9 +296,12 @@ namespace UVertex {
                     vector3df v2 = vertices[idx2].Pos;
                     vector3df v3 = vertices[idx3].Pos;
 
-                    triangle3df tri(v1, v2, v3);
-                    
-                    if (tri.isPointInsideFast(localHitPos)) {
+                    // Check if this triangle matches the hit triangle (any vertex order)
+                    if (trianglesMatch(v1, v2, v3, 
+                                    localHitTriangle.pointA, 
+                                    localHitTriangle.pointB, 
+                                    localHitTriangle.pointC)) {
+                        
                         result.isSelected = true;
                         result.bufferIndex = b;
                         result.vertexIndex1 = idx1;
@@ -301,7 +322,7 @@ namespace UVertex {
         }
 
         return result;
-    };
+    }
 
     inline VertexSelection Select(
         IMeshSceneNode* mesh,

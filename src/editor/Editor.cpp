@@ -47,7 +47,6 @@ void Editor::Update()
 {
     _setViewports();
     _setActiveViewport();
-    _model->ClearHighlighted();
 
     // Model rotation (unchanged)
     if (_activeViewport && _activeViewport == &_vModel) {
@@ -57,27 +56,51 @@ void Editor::Update()
     // Only process in orthographic viewports
     if (_activeViewport && _activeViewport != &_vModel) {
         
-        // Highlight vertex (only when not dragging)
-        if (!_application.receiver.MouseState.IsDragging) {
-            VertexSelection selection = UVertex::Select(
-                _defaultMesh,
-                _activeViewport->GetCamera().GetCameraSceneNode(),
-                _activeViewport->GetViewportSegment(),
-                _application.receiver.MouseState.Position,
-                _editorMode
-            );
-
-            if (selection.isSelected) {
-                _model->SetHighlightedVertex(selection.worldPos);
-            }
-        }
-
         // Handle vertex selection (on click, not continuous)
-        if (_model->HasHighlightedVertex() && 
-            _application.receiver.MouseState.LeftButtonDown &&
-            !_application.receiver.MouseState.WasLeftButtonDown) {  // Only on initial press
-            
-            _model->AddSelectedVertex();
+        if (_application.receiver.MouseState.LeftButtonDown && 
+            !_application.receiver.MouseState.WasLeftButtonDown) 
+        {
+            // The click happened, now decide what to do based on the mode
+            switch(_editorMode) 
+            {
+                case EditorMode::VERTEX: 
+                {
+                    VertexSelection selection = UVertex::Select(
+                        _defaultMesh,
+                        _activeViewport->GetCamera().GetCameraSceneNode(),
+                        _activeViewport->GetViewportSegment(),
+                        _application.receiver.MouseState.Position,
+                        _editorMode
+                    );
+
+                    if (selection.isSelected) {
+                        _model->AddSelectedVertex(selection.worldPos);
+                    }
+                    break;
+                }
+                
+                case EditorMode::EDGE: 
+                {
+                    EdgeSelection selection = UVertex::SelectEdge(
+                        _defaultMesh,
+                        _activeViewport->GetCamera().GetCameraSceneNode(),
+                        _activeViewport->GetViewportSegment(),
+                        _application.receiver.MouseState.Position
+                    );
+
+                    if (selection.isSelected) {
+                        _model->AddSelectedVertex(selection.worldPos1);
+                        _model->AddSelectedVertex(selection.worldPos2);
+                    }
+                    break;
+                }
+                
+                // case EditorMode::EDGE: 
+                //    break;
+                
+                default:
+                    break;
+            }
         }
 
         // Move selected vertices (only while dragging)

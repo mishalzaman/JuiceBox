@@ -2,7 +2,6 @@
 
 Model::Model(Application &application)
 :_application(application),
-_highlightedVertex(nullptr),
 _selectedVertices({})
 {
 }
@@ -78,20 +77,19 @@ void Model::UpdateMesh(vector3df vertexCurrent, vector3df vertexNew)
     _mesh->getMesh()->setDirty(EBT_VERTEX);
 }
 
-void Model::SetHighlightedVertex(vector3df position)
+void Model::AddSelectedVertex(vector3df position)
 {
-    ClearHighlighted(); // Remove existing highlight first to prevent memory leak
-    
-    _highlightedVertex = _application.smgr->addCubeSceneNode(0.5f);
-    _highlightedVertex->setPosition(position);
-    _highlightedVertex->setMaterialFlag(EMF_LIGHTING, false);
-    _highlightedVertex->setMaterialFlag(EMF_ZBUFFER, false);
-}
+    for (ISceneNode* node : _selectedVertices)
+    {
+        if (node->getPosition() == position)
+        {
+            return;
+        }
+    }
 
-void Model::AddSelectedVertex()
-{
+    // 2. If we reached here, the vertex is unique
     ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
-    selected->setPosition(_highlightedVertex->getPosition());
+    selected->setPosition(position);
     selected->setMaterialFlag(EMF_LIGHTING, true);
     selected->setMaterialFlag(EMF_ZBUFFER, false);
     selected->setMaterialFlag(EMF_ZWRITE_ENABLE, false);
@@ -99,8 +97,6 @@ void Model::AddSelectedVertex()
     selected->getMaterial(0).EmissiveColor.set(255, 0, 255, 0);
 
     _selectedVertices.push_back(selected);
-
-    ClearHighlighted();
 }
 
 std::vector<ISceneNode *> Model::GetSelectedVertices()
@@ -121,12 +117,4 @@ void Model::ClearSelectedVertices()
 void Model::ClearAll()
 {
     ClearSelectedVertices();
-}
-
-void Model::ClearHighlighted()
-{
-    if (_highlightedVertex) {
-        _highlightedVertex->remove();
-        _highlightedVertex = nullptr;
-    }
 }
