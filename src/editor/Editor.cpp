@@ -212,8 +212,6 @@ void Editor::_setFaceSelection()
         _application.receiver.MouseState.Position
     );
 
-    std::cout << "is quad " << selection.isQuad << std::endl;
-
     if (selection.isSelected) {
         if (selection.isQuad) {
             _model->AddSelectedVertex(selection.worldPos1);
