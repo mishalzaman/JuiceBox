@@ -51,7 +51,10 @@ struct FaceSelection {
     u32 vertexIndex1 = 0;
     u32 vertexIndex2 = 0;
     u32 vertexIndex3 = 0;
+    u32 vertexIndex4 = 0;
     vector3df worldPos1;
     vector3df worldPos2;
     vector3df worldPos3;
+    vector3df worldPos4;
+    bool isQuad = false;
 };

@@ -1,6 +1,8 @@
 #include <irrlicht.h>
 #include <cmath>
 #include <vector>
+#include <set>
+#include <algorithm>
 
 #include "Camera.h"
 
@@ -225,7 +227,6 @@ inline FaceSelection FindClosestFace(
     position2di mousePos
 ) {
     FaceSelection result;
-    f32 minDistSq = FLT_MAX;
     f32 closestDepthSq = FLT_MAX;
 
     camera->updateAbsolutePosition();
@@ -274,6 +275,20 @@ inline FaceSelection FindClosestFace(
         return !(hasNeg && hasPos);
     };
 
+    // Structure to track triangles that share edges
+    struct TriangleInfo {
+        u32 bufferIndex;
+        u32 idx1, idx2, idx3;
+        vector3df worldPos1, worldPos2, worldPos3;
+        f32 depthSq;
+        
+        // For edge matching
+        std::vector<std::pair<u32, u32>> edges;
+    };
+
+    std::vector<TriangleInfo> hitTriangles;
+
+    // First pass: find all triangles hit by the mouse
     for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
         IMeshBuffer* mb = mesh->getMeshBuffer(b);
         
@@ -308,24 +323,142 @@ inline FaceSelection FindClosestFace(
 
             // Check if mouse is inside the triangle
             if (pointInTriangle(mousePosF, screenPos1, screenPos2, screenPos3)) {
-                // Calculate centroid for depth comparison
                 vector3df centroid = (worldPos1 + worldPos2 + worldPos3) / 3.0f;
                 f32 depthSq = centroid.getDistanceFromSQ(camPos);
 
-                if (depthSq < closestDepthSq) {
-                    closestDepthSq = depthSq;
-                    result.isSelected = true;
-                    result.bufferIndex = b;
-                    result.vertexIndex1 = idx1;
-                    result.vertexIndex2 = idx2;
-                    result.vertexIndex3 = idx3;
-                    result.worldPos1 = worldPos1;
-                    result.worldPos2 = worldPos2;
-                    result.worldPos3 = worldPos3;
-                }
+                TriangleInfo info;
+                info.bufferIndex = b;
+                info.idx1 = idx1;
+                info.idx2 = idx2;
+                info.idx3 = idx3;
+                info.worldPos1 = worldPos1;
+                info.worldPos2 = worldPos2;
+                info.worldPos3 = worldPos3;
+                info.depthSq = depthSq;
+                
+                // Store edges (sorted pairs for matching)
+                auto makeEdge = [](u32 a, u32 b) -> std::pair<u32, u32> {
+                    return a < b ? std::make_pair(a, b) : std::make_pair(b, a);
+                };
+                info.edges.push_back(makeEdge(idx1, idx2));
+                info.edges.push_back(makeEdge(idx2, idx3));
+                info.edges.push_back(makeEdge(idx3, idx1));
+                
+                hitTriangles.push_back(info);
             }
         }
     }
+
+    if (hitTriangles.empty()) {
+        return result;
+    }
+
+    // Sort by depth (closest first)
+    std::sort(hitTriangles.begin(), hitTriangles.end(), 
+              [](const TriangleInfo& a, const TriangleInfo& b) {
+                  return a.depthSq < b.depthSq;
+              });
+
+    // Second pass: check if closest triangle forms a quad with another triangle
+    TriangleInfo& closest = hitTriangles[0];
+    
+    // Now search ALL triangles in the mesh buffer, not just hit triangles
+    IMeshBuffer* mb = mesh->getMeshBuffer(closest.bufferIndex);
+    S3DVertex* vertices = (S3DVertex*)mb->getVertices();
+    u16* indices = mb->getIndices();
+    u32 indexCount = mb->getIndexCount();
+    
+    auto makeEdge = [](u32 a, u32 b) -> std::pair<u32, u32> {
+        return a < b ? std::make_pair(a, b) : std::make_pair(b, a);
+    };
+    
+    // Look for a triangle that shares an edge with the closest one
+    for (u32 i = 0; i < indexCount; i += 3) {
+        u32 idx1 = indices[i];
+        u32 idx2 = indices[i + 1];
+        u32 idx3 = indices[i + 2];
+        
+        // Skip if this is the same triangle as closest
+        if ((idx1 == closest.idx1 && idx2 == closest.idx2 && idx3 == closest.idx3) ||
+            (idx1 == closest.idx1 && idx2 == closest.idx3 && idx3 == closest.idx2) ||
+            (idx1 == closest.idx2 && idx2 == closest.idx1 && idx3 == closest.idx3) ||
+            (idx1 == closest.idx2 && idx2 == closest.idx3 && idx3 == closest.idx1) ||
+            (idx1 == closest.idx3 && idx2 == closest.idx1 && idx3 == closest.idx2) ||
+            (idx1 == closest.idx3 && idx2 == closest.idx2 && idx3 == closest.idx1)) {
+            continue;
+        }
+        
+        TriangleInfo other;
+        other.bufferIndex = closest.bufferIndex;
+        other.idx1 = idx1;
+        other.idx2 = idx2;
+        other.idx3 = idx3;
+        other.edges.push_back(makeEdge(idx1, idx2));
+        other.edges.push_back(makeEdge(idx2, idx3));
+        other.edges.push_back(makeEdge(idx3, idx1));
+        
+        // Check if they share exactly one edge
+        int sharedEdges = 0;
+        for (const auto& edge1 : closest.edges) {
+            for (const auto& edge2 : other.edges) {
+                if (edge1 == edge2) {
+                    sharedEdges++;
+                }
+            }
+        }
+        
+        if (sharedEdges == 1) {
+            // Found a quad! Collect all 4 unique vertices
+            std::set<u32> uniqueIndices;
+            uniqueIndices.insert(closest.idx1);
+            uniqueIndices.insert(closest.idx2);
+            uniqueIndices.insert(closest.idx3);
+            uniqueIndices.insert(other.idx1);
+            uniqueIndices.insert(other.idx2);
+            uniqueIndices.insert(other.idx3);
+            
+            if (uniqueIndices.size() == 4) {
+                // It's a proper quad
+                result.isSelected = true;
+                result.bufferIndex = closest.bufferIndex;
+                result.isQuad = true;
+                
+                // Store all 4 vertices
+                std::vector<u32> vertIndices(uniqueIndices.begin(), uniqueIndices.end());
+                result.vertexIndex1 = vertIndices[0];
+                result.vertexIndex2 = vertIndices[1];
+                result.vertexIndex3 = vertIndices[2];
+                result.vertexIndex4 = vertIndices[3];
+                
+                // Get world positions
+                IMeshBuffer* mb = mesh->getMeshBuffer(result.bufferIndex);
+                S3DVertex* vertices = (S3DVertex*)mb->getVertices();
+                
+                result.worldPos1 = vertices[result.vertexIndex1].Pos;
+                result.worldPos2 = vertices[result.vertexIndex2].Pos;
+                result.worldPos3 = vertices[result.vertexIndex3].Pos;
+                result.worldPos4 = vertices[result.vertexIndex4].Pos;
+                
+                world.transformVect(result.worldPos1);
+                world.transformVect(result.worldPos2);
+                world.transformVect(result.worldPos3);
+                world.transformVect(result.worldPos4);
+                
+                return result;
+            }
+        }
+    }
+
+    // No quad found, return just the triangle
+    result.isSelected = true;
+    result.bufferIndex = closest.bufferIndex;
+    result.vertexIndex1 = closest.idx1;
+    result.vertexIndex2 = closest.idx2;
+    result.vertexIndex3 = closest.idx3;
+    result.worldPos1 = closest.worldPos1;
+    result.worldPos2 = closest.worldPos2;
+    result.worldPos3 = closest.worldPos3;
+    result.isQuad = false;
 
     return result;
 }

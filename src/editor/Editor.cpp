@@ -104,10 +104,19 @@ void Editor::Update()
                         _application.receiver.MouseState.Position
                     );
 
+                    std::cout << "is quad " << selection.isQuad << std::endl;
+
                     if (selection.isSelected) {
-                        _model->AddSelectedVertex(selection.worldPos1);
-                        _model->AddSelectedVertex(selection.worldPos2);
-                        _model->AddSelectedVertex(selection.worldPos3);
+                        if (selection.isQuad) {
+                            _model->AddSelectedVertex(selection.worldPos1);
+                            _model->AddSelectedVertex(selection.worldPos2);
+                            _model->AddSelectedVertex(selection.worldPos3);
+                            _model->AddSelectedVertex(selection.worldPos4);
+                        } else {
+                            _model->AddSelectedVertex(selection.worldPos1);
+                            _model->AddSelectedVertex(selection.worldPos2);
+                            _model->AddSelectedVertex(selection.worldPos3);
+                        }
                     }
                     break;
                 }
