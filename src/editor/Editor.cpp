@@ -50,9 +50,8 @@ void Editor::Update()
     _model->ClearHighlighted();
 
     // Model rotation (unchanged)
-    if (_application.receiver.MouseState.IsDragging && _activeViewport == &_vModel) {
-        position2di mouseDelta = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
-        _activeViewport->GetCamera().Rotate(mouseDelta.X, mouseDelta.Y);
+    if (_activeViewport && _activeViewport == &_vModel) {
+        _activeViewport->GetCamera().Rotate();
     }
 
     // Only process in orthographic viewports
