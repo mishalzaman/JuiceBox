@@ -35,10 +35,14 @@ private:
     ISceneCollisionManager* _collisionManager;
     IMeshSceneNode* _defaultMesh;
 
-
     void _setupDefaultMesh();
     void _setViewports();
     void _setActiveViewport();
+    
+    // Selection modes
+    void _setVertexSelection();
+    void _setEdgeSelection();
+    void _setFaceSelection();
 
     // Camera constants
     static const vector3df CAMERA_LOOKAT;

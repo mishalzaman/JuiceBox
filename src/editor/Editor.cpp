@@ -56,73 +56,28 @@ void Editor::Update()
     // Only process in orthographic viewports
     if (_activeViewport && _activeViewport != &_vModel) {
         
-        // Handle vertex selection (on click, not continuous)
         if (_application.receiver.MouseState.LeftButtonDown && 
             !_application.receiver.MouseState.WasLeftButtonDown) 
         {
-            // The click happened, now decide what to do based on the mode
             switch(_editorMode) 
             {
                 case EditorMode::VERTEX: 
                 {
-                    VertexSelection selection = UVertex::Select(
-                        _defaultMesh,
-                        _activeViewport->GetCamera().GetCameraSceneNode(),
-                        _activeViewport->GetViewportSegment(),
-                        _application.receiver.MouseState.Position,
-                        _editorMode
-                    );
-
-                    if (selection.isSelected) {
-                        _model->AddSelectedVertex(selection.worldPos);
-                    }
+                    _setVertexSelection();
                     break;
                 }
                 
                 case EditorMode::EDGE: 
                 {
-                    EdgeSelection selection = UVertex::SelectEdge(
-                        _defaultMesh,
-                        _activeViewport->GetCamera().GetCameraSceneNode(),
-                        _activeViewport->GetViewportSegment(),
-                        _application.receiver.MouseState.Position
-                    );
-
-                    if (selection.isSelected) {
-                        _model->AddSelectedVertex(selection.worldPos1);
-                        _model->AddSelectedVertex(selection.worldPos2);
-                    }
+                    _setEdgeSelection();
                     break;
                 }
 
                 case EditorMode::FACE: 
                 {
-                    FaceSelection selection = UVertex::SelectFace(
-                        _defaultMesh,
-                        _activeViewport->GetCamera().GetCameraSceneNode(),
-                        _activeViewport->GetViewportSegment(),
-                        _application.receiver.MouseState.Position
-                    );
-
-                    std::cout << "is quad " << selection.isQuad << std::endl;
-
-                    if (selection.isSelected) {
-                        if (selection.isQuad) {
-                            _model->AddSelectedVertex(selection.worldPos1);
-                            _model->AddSelectedVertex(selection.worldPos2);
-                            _model->AddSelectedVertex(selection.worldPos3);
-                            _model->AddSelectedVertex(selection.worldPos4);
-                        } else {
-                            _model->AddSelectedVertex(selection.worldPos1);
-                            _model->AddSelectedVertex(selection.worldPos2);
-                            _model->AddSelectedVertex(selection.worldPos3);
-                        }
-                    }
+                    _setFaceSelection();
                     break;
                 }
-                
-                // case EditorMode::EDGE: 
-                //    break;
                 
                 default:
                     break;
@@ -215,5 +170,60 @@ void Editor::_setActiveViewport()
     }
     else if (_vRight.IsActive(_application.receiver.MouseState.Position)) { 
         _activeViewport = &_vRight; 
+    }
+}
+
+void Editor::_setVertexSelection()
+{
+    VertexSelection selection = UVertex::Select(
+        _defaultMesh,
+        _activeViewport->GetCamera().GetCameraSceneNode(),
+        _activeViewport->GetViewportSegment(),
+        _application.receiver.MouseState.Position,
+        _editorMode
+    );
+
+    if (selection.isSelected) {
+        _model->AddSelectedVertex(selection.worldPos);
+    }
+}
+
+void Editor::_setEdgeSelection()
+{
+    EdgeSelection selection = UVertex::SelectEdge(
+        _defaultMesh,
+        _activeViewport->GetCamera().GetCameraSceneNode(),
+        _activeViewport->GetViewportSegment(),
+        _application.receiver.MouseState.Position
+    );
+
+    if (selection.isSelected) {
+        _model->AddSelectedVertex(selection.worldPos1);
+        _model->AddSelectedVertex(selection.worldPos2);
+    }
+}
+
+void Editor::_setFaceSelection()
+{
+    FaceSelection selection = UVertex::SelectFace(
+        _defaultMesh,
+        _activeViewport->GetCamera().GetCameraSceneNode(),
+        _activeViewport->GetViewportSegment(),
+        _application.receiver.MouseState.Position
+    );
+
+    std::cout << "is quad " << selection.isQuad << std::endl;
+
+    if (selection.isSelected) {
+        if (selection.isQuad) {
+            _model->AddSelectedVertex(selection.worldPos1);
+            _model->AddSelectedVertex(selection.worldPos2);
+            _model->AddSelectedVertex(selection.worldPos3);
+            _model->AddSelectedVertex(selection.worldPos4);
+        } else {
+            _model->AddSelectedVertex(selection.worldPos1);
+            _model->AddSelectedVertex(selection.worldPos2);
+            _model->AddSelectedVertex(selection.worldPos3);
+        }
     }
 }
