@@ -1,5 +1,5 @@
 # JuiceBox
-_0.1.18_
+_0.4.55_
 
 ![0.1.11](v0_1_11.png)
 
@@ -9,11 +9,45 @@ A lofi 3d modelling app that replicates similar aesthetics to the Playstation.
 - Model Editing
 - Texture Painting
 
-### Model Editing
-- Selection
+### UI
+- Menu bar
+  - File
+      - New
+      - Load
+      - Save
+      - Exit
+  - Options
+      - Lighting
+      - Rendering
+- Selection (buttons)
   - Vertex
   - Edge
   - Face
+- Viewports
+  - [x] top/bottom
+  - [x] front/back
+  - [x] right/left
+  - [x] model
+- Transformation (buttons)
+  - Rotate
+  - Scale
+  - Translate
+- Creation (buttons)
+  - Add new mesh (cube, sphere etc)
+  - Loop cut
+  - Subdivide
+  - Extrude
+  - Inset
+- Removal
+  - Delete vertex (context menu)
+  - Delete edge (context menu)
+  - Delete face (context menu)
+
+### Model Editing
+- Selection
+  - [x] Vertex
+  - [x] Edge
+  - [x] Face
 - Transformations
   - Rotate
   - Scale
