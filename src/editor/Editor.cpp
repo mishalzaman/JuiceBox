@@ -94,6 +94,23 @@ void Editor::Update()
                     }
                     break;
                 }
+
+                case EditorMode::FACE: 
+                {
+                    FaceSelection selection = UVertex::SelectFace(
+                        _defaultMesh,
+                        _activeViewport->GetCamera().GetCameraSceneNode(),
+                        _activeViewport->GetViewportSegment(),
+                        _application.receiver.MouseState.Position
+                    );
+
+                    if (selection.isSelected) {
+                        _model->AddSelectedVertex(selection.worldPos1);
+                        _model->AddSelectedVertex(selection.worldPos2);
+                        _model->AddSelectedVertex(selection.worldPos3);
+                    }
+                    break;
+                }
                 
                 // case EditorMode::EDGE: 
                 //    break;

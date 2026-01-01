@@ -218,111 +218,117 @@ namespace UVertex {
         return result;
     };
 
-    inline FaceSelection FindClosestFace(
-        IMeshSceneNode* node,
-        ICameraSceneNode* camera,
-        rect<s32> viewport,
-        position2di mousePos
-    ) {
-        FaceSelection result;
+inline FaceSelection FindClosestFace(
+    IMeshSceneNode* node,
+    ICameraSceneNode* camera,
+    rect<s32> viewport,
+    position2di mousePos
+) {
+    FaceSelection result;
+    f32 minDistSq = FLT_MAX;
+    f32 closestDepthSq = FLT_MAX;
 
-        camera->updateAbsolutePosition();
+    camera->updateAbsolutePosition();
+    matrix4 view = camera->getViewMatrix();
+    matrix4 proj = camera->getProjectionMatrix();
+    matrix4 world = node->getAbsoluteTransformation();
+    matrix4 viewProj = proj * view;
+
+    f32 vpW = (f32)viewport.getWidth();
+    f32 vpH = (f32)viewport.getHeight();
+    f32 vpX = (f32)viewport.UpperLeftCorner.X;
+    f32 vpY = (f32)viewport.UpperLeftCorner.Y;
+
+    IMesh* mesh = node->getMesh();
+    vector3df camPos = camera->getAbsolutePosition();
+    vector2df mousePosF((f32)mousePos.X, (f32)mousePos.Y);
+
+    auto worldToScreen = [&](const vector3df& worldPos, vector2df& screenPos) -> bool {
+        f32 transformedPos[4] = { worldPos.X, worldPos.Y, worldPos.Z, 1.0f };
+        viewProj.multiplyWith1x4Matrix(transformedPos);
+
+        if (transformedPos[3] == 0) return false;
+
+        f32 zDiv = 1.0f / transformedPos[3];
+        f32 ndcX = transformedPos[0] * zDiv;
+        f32 ndcY = transformedPos[1] * zDiv;
+
+        screenPos.X = (ndcX + 1.0f) * 0.5f * vpW + vpX;
+        screenPos.Y = (1.0f - ndcY) * 0.5f * vpH + vpY;
+        return true;
+    };
+
+    // Check if point is inside triangle (2D)
+    auto pointInTriangle = [](const vector2df& p, const vector2df& a, const vector2df& b, const vector2df& c) -> bool {
+        auto sign = [](const vector2df& p1, const vector2df& p2, const vector2df& p3) -> f32 {
+            return (p1.X - p3.X) * (p2.Y - p3.Y) - (p2.X - p3.X) * (p1.Y - p3.Y);
+        };
+
+        f32 d1 = sign(p, a, b);
+        f32 d2 = sign(p, b, c);
+        f32 d3 = sign(p, c, a);
+
+        bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+        bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+        return !(hasNeg && hasPos);
+    };
+
+    for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
+        IMeshBuffer* mb = mesh->getMeshBuffer(b);
         
-        ISceneCollisionManager* collMan = node->getSceneManager()->getSceneCollisionManager();
-        
-        position2di viewportMouse(
-            mousePos.X - viewport.UpperLeftCorner.X,
-            mousePos.Y - viewport.UpperLeftCorner.Y
-        );
-        
-        line3df ray = collMan->getRayFromScreenCoordinates(viewportMouse, camera);
+        if (mb->getVertexType() != EVT_STANDARD) {
+            continue;
+        }
 
-        vector3df hitPos;
-        triangle3df hitTriangle;
-        ISceneNode* hitNode = collMan->getSceneNodeAndCollisionPointFromRay(
-            ray,
-            hitPos,
-            hitTriangle,
-            0,
-            node
-        );
+        S3DVertex* vertices = (S3DVertex*)mb->getVertices();
+        u16* indices = mb->getIndices();
+        u32 indexCount = mb->getIndexCount();
 
-        if (hitNode == node) {
-            IMesh* mesh = node->getMesh();
-            matrix4 world = node->getAbsoluteTransformation();
+        for (u32 i = 0; i < indexCount; i += 3) {
+            u32 idx1 = indices[i];
+            u32 idx2 = indices[i + 1];
+            u32 idx3 = indices[i + 2];
 
-            // Transform hit triangle to local space for comparison
-            matrix4 invWorld;
-            world.getInverse(invWorld);
-            
-            triangle3df localHitTriangle = hitTriangle;
-            invWorld.transformVect(localHitTriangle.pointA);
-            invWorld.transformVect(localHitTriangle.pointB);
-            invWorld.transformVect(localHitTriangle.pointC);
+            vector3df localPos1 = vertices[idx1].Pos;
+            vector3df localPos2 = vertices[idx2].Pos;
+            vector3df localPos3 = vertices[idx3].Pos;
 
-            const f32 epsilon = 0.001f;
+            vector3df worldPos1 = localPos1;
+            vector3df worldPos2 = localPos2;
+            vector3df worldPos3 = localPos3;
+            world.transformVect(worldPos1);
+            world.transformVect(worldPos2);
+            world.transformVect(worldPos3);
 
-            // Helper to check if three vertices match (in any order)
-            auto trianglesMatch = [epsilon](
-                const vector3df& v1, const vector3df& v2, const vector3df& v3,
-                const vector3df& t1, const vector3df& t2, const vector3df& t3
-            ) -> bool {
-                // Check if all vertices of the mesh triangle match vertices in the hit triangle
-                int matchCount = 0;
-                if (v1.equals(t1, epsilon) || v1.equals(t2, epsilon) || v1.equals(t3, epsilon)) matchCount++;
-                if (v2.equals(t1, epsilon) || v2.equals(t2, epsilon) || v2.equals(t3, epsilon)) matchCount++;
-                if (v3.equals(t1, epsilon) || v3.equals(t2, epsilon) || v3.equals(t3, epsilon)) matchCount++;
-                return matchCount == 3;
-            };
+            vector2df screenPos1, screenPos2, screenPos3;
+            if (!worldToScreen(worldPos1, screenPos1)) continue;
+            if (!worldToScreen(worldPos2, screenPos2)) continue;
+            if (!worldToScreen(worldPos3, screenPos3)) continue;
 
-            // Find matching triangle in mesh
-            for (u32 b = 0; b < mesh->getMeshBufferCount(); ++b) {
-                IMeshBuffer* mb = mesh->getMeshBuffer(b);
-                
-                if (mb->getVertexType() != EVT_STANDARD) {
-                    continue;
-                }
+            // Check if mouse is inside the triangle
+            if (pointInTriangle(mousePosF, screenPos1, screenPos2, screenPos3)) {
+                // Calculate centroid for depth comparison
+                vector3df centroid = (worldPos1 + worldPos2 + worldPos3) / 3.0f;
+                f32 depthSq = centroid.getDistanceFromSQ(camPos);
 
-                S3DVertex* vertices = (S3DVertex*)mb->getVertices();
-                u16* indices = mb->getIndices();
-                u32 indexCount = mb->getIndexCount();
-
-                for (u32 i = 0; i < indexCount; i += 3) {
-                    u32 idx1 = indices[i];
-                    u32 idx2 = indices[i + 1];
-                    u32 idx3 = indices[i + 2];
-
-                    vector3df v1 = vertices[idx1].Pos;
-                    vector3df v2 = vertices[idx2].Pos;
-                    vector3df v3 = vertices[idx3].Pos;
-
-                    // Check if this triangle matches the hit triangle (any vertex order)
-                    if (trianglesMatch(v1, v2, v3, 
-                                    localHitTriangle.pointA, 
-                                    localHitTriangle.pointB, 
-                                    localHitTriangle.pointC)) {
-                        
-                        result.isSelected = true;
-                        result.bufferIndex = b;
-                        result.vertexIndex1 = idx1;
-                        result.vertexIndex2 = idx2;
-                        result.vertexIndex3 = idx3;
-                        
-                        result.worldPos1 = v1;
-                        result.worldPos2 = v2;
-                        result.worldPos3 = v3;
-                        world.transformVect(result.worldPos1);
-                        world.transformVect(result.worldPos2);
-                        world.transformVect(result.worldPos3);
-                        
-                        return result;
-                    }
+                if (depthSq < closestDepthSq) {
+                    closestDepthSq = depthSq;
+                    result.isSelected = true;
+                    result.bufferIndex = b;
+                    result.vertexIndex1 = idx1;
+                    result.vertexIndex2 = idx2;
+                    result.vertexIndex3 = idx3;
+                    result.worldPos1 = worldPos1;
+                    result.worldPos2 = worldPos2;
+                    result.worldPos3 = worldPos3;
                 }
             }
         }
-
-        return result;
     }
+
+    return result;
+}
 
     inline VertexSelection Select(
         IMeshSceneNode* mesh,

@@ -60,14 +60,17 @@ int main() {
 
         if (app.receiver.IsKeyDown(KEY_KEY_Q)) {
             editor.ChangeMode(EditorMode::VERTEX);
+            std::cout << "VERTEX MODE" << std::endl;
         }
         
         if (app.receiver.IsKeyDown(KEY_KEY_W)) {
             editor.ChangeMode(EditorMode::EDGE);
+            std::cout << "EDGE MODE" << std::endl;
         }
 
         if (app.receiver.IsKeyDown(KEY_KEY_E)) {
             editor.ChangeMode(EditorMode::FACE);
+            std::cout << "FACE MODE" << std::endl;
         }
 
         if (app.device->isWindowActive()) {
