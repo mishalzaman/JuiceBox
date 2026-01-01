@@ -3,6 +3,7 @@
 #include <irrlicht.h>
 #include <cmath>
 #include <vector>
+#include <iostream>
 #include "Application.h"
 #include "helpers/Mesh.h"
 
@@ -19,20 +20,16 @@ class Model {
         void UpdateMesh(vector3df vertexCurrent, vector3df vertexNew);
 
         // Vertices
-        void SetHighlightedVertex(vector3df position);
-        bool HasHighlightedVertex() { return !!_highlightedVertex; };
-        void AddSelectedVertex();
+        void AddSelectedVertex(vector3df position);
         std::vector<ISceneNode*> GetSelectedVertices();
         void ClearSelectedVertices();
 
         void ClearAll();
-        void ClearHighlighted();
     private:
         Application& _application;
         IMeshSceneNode* _mesh;
         ISceneCollisionManager* _collisionManager;
 
         // Vertices
-        ISceneNode* _highlightedVertex;
         std::vector<ISceneNode*> _selectedVertices;
 };

@@ -2,7 +2,6 @@
 
 Model::Model(Application &application)
 :_application(application),
-_highlightedVertex(nullptr),
 _selectedVertices({})
 {
 }
@@ -23,9 +22,15 @@ void Model::GenerateDefault()
     if (_mesh) {
         _mesh->setPosition(vector3df(0, 0, 0));
         _mesh->setMaterialFlag(EMF_LIGHTING, false);
+        
+        // Load and apply the crate texture
+        ITexture* crateTexture = _application.driver->getTexture("assets/crate.png");
+        if (crateTexture) {
+            _mesh->setMaterialTexture(0, crateTexture);
+        }
     }
 
-    _application.smgr->addLightSceneNode(0, vector3df(0, 20, -20), SColorf(1.0f, 1.0f, 1.0f), 20.0f);
+    _application.smgr->addLightSceneNode(0, vector3df(0, 10, -10), SColorf(1.0f, 1.0f, 1.0f), 40.0f);
 }
 
 void Model::UpdateMesh(vector3df vertexCurrent, vector3df vertexNew)
@@ -72,20 +77,19 @@ void Model::UpdateMesh(vector3df vertexCurrent, vector3df vertexNew)
     _mesh->getMesh()->setDirty(EBT_VERTEX);
 }
 
-void Model::SetHighlightedVertex(vector3df position)
+void Model::AddSelectedVertex(vector3df position)
 {
-    ClearHighlighted(); // Remove existing highlight first to prevent memory leak
-    
-    _highlightedVertex = _application.smgr->addCubeSceneNode(0.5f);
-    _highlightedVertex->setPosition(position);
-    _highlightedVertex->setMaterialFlag(EMF_LIGHTING, false);
-    _highlightedVertex->setMaterialFlag(EMF_ZBUFFER, false);
-}
+    for (ISceneNode* node : _selectedVertices)
+    {
+        if (node->getPosition() == position)
+        {
+            return;
+        }
+    }
 
-void Model::AddSelectedVertex()
-{
+    // 2. If we reached here, the vertex is unique
     ISceneNode* selected = _application.smgr->addCubeSceneNode(0.5f);
-    selected->setPosition(_highlightedVertex->getPosition());
+    selected->setPosition(position);
     selected->setMaterialFlag(EMF_LIGHTING, true);
     selected->setMaterialFlag(EMF_ZBUFFER, false);
     selected->setMaterialFlag(EMF_ZWRITE_ENABLE, false);
@@ -93,8 +97,6 @@ void Model::AddSelectedVertex()
     selected->getMaterial(0).EmissiveColor.set(255, 0, 255, 0);
 
     _selectedVertices.push_back(selected);
-
-    ClearHighlighted();
 }
 
 std::vector<ISceneNode *> Model::GetSelectedVertices()
@@ -115,12 +117,4 @@ void Model::ClearSelectedVertices()
 void Model::ClearAll()
 {
     ClearSelectedVertices();
-}
-
-void Model::ClearHighlighted()
-{
-    if (_highlightedVertex) {
-        _highlightedVertex->remove();
-        _highlightedVertex = nullptr;
-    }
 }

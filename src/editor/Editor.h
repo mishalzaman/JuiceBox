@@ -27,7 +27,7 @@ public:
     void Update();
 
     void ClearVertices();
-    void ChangeMode(EditorMode mode) { _mode = mode; }
+    void ChangeMode(EditorMode mode) { _editorMode = mode; }
     
 private:
     Application& _application;
@@ -35,10 +35,14 @@ private:
     ISceneCollisionManager* _collisionManager;
     IMeshSceneNode* _defaultMesh;
 
-
     void _setupDefaultMesh();
     void _setViewports();
     void _setActiveViewport();
+    
+    // Selection modes
+    void _setVertexSelection();
+    void _setEdgeSelection();
+    void _setFaceSelection();
 
     // Camera constants
     static const vector3df CAMERA_LOOKAT;
@@ -62,5 +66,5 @@ private:
     // Vertex Selections
     std::unique_ptr<Model> _model;
 
-    EditorMode _mode;
+    EditorMode _editorMode;
 };

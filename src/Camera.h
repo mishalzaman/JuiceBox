@@ -22,10 +22,11 @@ public:
 
     ICameraSceneNode* GetCameraSceneNode() { return _camera; }
     void SetUpVector(vector3df up) { _camera->setUpVector(up); }
-    void Rotate(float mouseDeltaX, float mouseDeltaY);
+    void Rotate();
 
 private:
     ICameraSceneNode* _camera;
+    Application& _application;
 
     vector3df _position;
     vector3df _lookat;

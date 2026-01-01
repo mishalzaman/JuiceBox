@@ -23,4 +23,12 @@ class Viewport {
 
         rect<s32> _viewportSegment;
         ViewportType _viewPortType;
+        
+        // Render texture
+        ITexture* _renderTexture;
+        static constexpr s32 MAX_RENDER_WIDTH = 640;
+        
+        void _createRenderTexture();
+        void _renderToTexture(IMeshSceneNode* mesh, bool wireframe);
+        void _drawTextureToViewport();
 };

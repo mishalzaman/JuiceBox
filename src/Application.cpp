@@ -35,6 +35,7 @@ bool Application::BeginCore() {
     device->setWindowCaption(L"Juice Box v0.1.0");
 
     driver = device->getVideoDriver();
+    driver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
     smgr = device->getSceneManager();
 
     return true;

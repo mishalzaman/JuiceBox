@@ -14,6 +14,7 @@ public:
         position2di LastPosition;  // Position in the previous frame
         position2di ClickPosition; // Where the mouse was when button was first pressed
         bool LeftButtonDown;
+        bool WasLeftButtonDown;    // NEW: Button state from previous frame
         bool IsDragging;
 
         // Number of pixels to move before a "click" becomes a "drag"
@@ -27,6 +28,7 @@ public:
             KeyIsDown[i] = false;
         
         MouseState.LeftButtonDown = false;
+        MouseState.WasLeftButtonDown = false;  // NEW: Initialize
         MouseState.IsDragging = false;
         MouseState.Position = position2di(0, 0);
         MouseState.LastPosition = position2di(0, 0);
@@ -88,6 +90,11 @@ public:
 
     core::vector2di GetMouseDelta() const {
         return MouseState.Position - MouseState.LastPosition;
+    }
+
+    // NEW: Call this at the end of each frame to update previous state
+    void EndFrame() {
+        MouseState.WasLeftButtonDown = MouseState.LeftButtonDown;
     }
 
     void UpdateLastPosition() {

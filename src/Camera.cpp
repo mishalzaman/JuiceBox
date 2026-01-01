@@ -6,7 +6,9 @@ Camera::Camera(
         vector3df lookat,
         bool isOrtho
     ):
-    _position(position), _lookat(lookat)
+    _position(position),
+    _lookat(lookat),
+    _application(application)
 {
     _camera = application.smgr->addCameraSceneNode(0, _position, _lookat);
 
@@ -26,10 +28,15 @@ Camera::~Camera()
 {
 }
 
-void Camera::Rotate(float mouseDeltaX, float mouseDeltaY)
+void Camera::Rotate()
 {
-    _theta -= mouseDeltaX * _sensitivity; 
-    _phi += mouseDeltaY * _sensitivity;  
+    if (!_application.receiver.MouseState.IsDragging) {
+        return;
+    }
+
+    position2di mouseDelta = _application.receiver.MouseState.Position - _application.receiver.MouseState.LastPosition;
+    _theta -= mouseDelta.X * _sensitivity; 
+    _phi += mouseDelta.Y * _sensitivity;  
     if (_phi > 89.0f) _phi = 89.0f;
     if (_phi < -89.0f) _phi = -89.0f;
     f32 r = _cameraRadius;
