@@ -8,6 +8,9 @@
 #include "ImGuiInputHandler.h"
 #include "editor/Editor.h"
 
+// UI
+#include "ui/UITopBar.h"
+
 // Helpers
 #include "helpers/Mesh.h"
 
@@ -46,6 +49,10 @@ int main() {
 
     Editor editor(app);
 
+    // UI
+    UITopBar topBar;
+    topBar.Init();
+
     /* ================================
     MAIN LOOP 
     =================================*/
@@ -81,7 +88,6 @@ int main() {
             USER INTERACTION
             =================================*/
 
-
             /* ================================
             UPDATE
             =================================*/
@@ -91,7 +97,28 @@ int main() {
             RENDER
             =================================*/
             app.driver->beginScene(true, true, SColor(255, 40, 40, 40));
+            
+            // Set ImGui display size BEFORE NewFrame
+            dimension2d<u32> screenSize = app.driver->getScreenSize();
+            ImGuiIO& io = ImGui::GetIO();
+            io.DisplaySize = ImVec2((float)screenSize.Width, (float)screenSize.Height);
+            
+            // Start the Dear ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui::NewFrame();
+
+            // Render UI
+            topBar.Render();
+
+            // Rendering
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            
             editor.Draw();
+            
+            // Render ImGui draw data
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            
             app.driver->endScene();
             app.receiver.UpdateLastPosition();
             app.receiver.EndFrame();

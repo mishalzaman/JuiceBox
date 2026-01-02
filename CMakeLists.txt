@@ -86,6 +86,7 @@ set(JUICEBOX_SOURCES
     src/Viewport.cpp
     src/Camera.cpp
     src/Model.cpp
+    src/ui/UITopBar.cpp
 )
 set(JUICEBOX_HEADERS 
     src/JuiceBoxEventListener.h 
@@ -100,6 +101,7 @@ set(JUICEBOX_HEADERS
     src/Model.h
     src/utility/UVertex.h
     src/Types.h
+    src/ui/UITopBar.h
 )
 
 add_executable(JuiceBox ${JUICEBOX_SOURCES})
