@@ -59,16 +59,19 @@ int main() {
         }
 
         if (app.receiver.IsKeyDown(KEY_KEY_Q)) {
+            editor.ClearVertices();
             editor.ChangeMode(EditorMode::VERTEX);
             std::cout << "VERTEX MODE" << std::endl;
         }
         
         if (app.receiver.IsKeyDown(KEY_KEY_W)) {
+            editor.ClearVertices();
             editor.ChangeMode(EditorMode::EDGE);
             std::cout << "EDGE MODE" << std::endl;
         }
 
         if (app.receiver.IsKeyDown(KEY_KEY_E)) {
+            editor.ClearVertices();
             editor.ChangeMode(EditorMode::FACE);
             std::cout << "FACE MODE" << std::endl;
         }
